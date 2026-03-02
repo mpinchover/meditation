@@ -51,22 +51,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.bg}>
-        <View style={styles.moon} pointerEvents="none" />
-        <View style={styles.aurora} pointerEvents="none" />
 
         <View style={styles.app}>
           <View style={styles.header}>
-            <View style={styles.logoMark}>
-              <View style={styles.logoDot} />
-            </View>
             <Text style={[styles.h1, { fontFamily: serif, color: PALETTE.silver }]}>Stillness</Text>
-            <Text
-              style={[
-                styles.subtitle,
-                { fontFamily: sansThin, color: PALETTE.mist, letterSpacing: 3.6 },
-              ]}>
-              Sleep Meditation
-            </Text>
           </View>
 
           <View style={styles.center}>
