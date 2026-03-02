@@ -49,7 +49,7 @@ export default function SoundScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.subtitle}>Choose a soundscape for your session.</Text>
+     
 
         <View style={styles.list}>
           {SOUNDS.map((name) => {

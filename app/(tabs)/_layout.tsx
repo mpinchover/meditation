@@ -58,6 +58,8 @@ export default function TabLayout() {
         name="session"
         options={{
           href: null,
+          // Hide tab bar while meditation session is active
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tabs>
