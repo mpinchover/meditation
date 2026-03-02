@@ -255,6 +255,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   playWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: "5%",
     alignItems: 'center',
     gap: 14,
   },
