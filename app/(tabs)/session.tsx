@@ -20,32 +20,25 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function SessionScreen() {
-  const initialSeconds = getCurrentDurationMinutes() * 60;
-  const [remaining, setRemaining] = useState(initialSeconds);
+  const initialSecondsRef = useRef(getCurrentDurationMinutes() * 60);
+  const [remaining, setRemaining] = useState(initialSecondsRef.current);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pausedRef = useRef(false);
 
   useEffect(() => {
-    if (initialSeconds <= 0) {
+    if (initialSecondsRef.current <= 0) {
       router.back();
       return;
     }
-  }, [initialSeconds]);
+  }, []);
 
   useEffect(() => {
-    if (isPaused) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    pausedRef.current = false;
 
     intervalRef.current = setInterval(() => {
+      if (pausedRef.current) return;
+
       setRemaining((prev) => {
         if (prev <= 1) {
           if (intervalRef.current) {
@@ -65,7 +58,7 @@ export default function SessionScreen() {
         intervalRef.current = null;
       }
     };
-  }, [isPaused]);
+  }, []);
 
   const showFinish = isPaused && remaining > 0;
 
@@ -78,7 +71,13 @@ export default function SessionScreen() {
 
         <View style={styles.bottomControls}>
           <Pressable
-            onPress={() => setIsPaused((prev) => !prev)}
+            onPress={() => {
+              setIsPaused((prev) => {
+                const next = !prev;
+                pausedRef.current = next;
+                return next;
+              });
+            }}
             style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
             <Ionicons
               name={isPaused ? 'play' : 'pause'}
