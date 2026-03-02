@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { getCurrentDurationMinutes } from '@/constants/session';
@@ -26,39 +26,49 @@ export default function SessionScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
 
-  useEffect(() => {
-    if (initialSecondsRef.current <= 0) {
-      router.back();
-      return;
-    }
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const minutes = getCurrentDurationMinutes();
+      initialSecondsRef.current = minutes * 60;
 
-  useEffect(() => {
-    pausedRef.current = false;
+      if (initialSecondsRef.current <= 0) {
+        router.back();
+        return;
+      }
 
-    intervalRef.current = setInterval(() => {
-      if (pausedRef.current) return;
+      setRemaining(initialSecondsRef.current);
+      setIsPaused(false);
+      pausedRef.current = false;
 
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          router.back();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-    };
-  }, []);
+
+      intervalRef.current = setInterval(() => {
+        if (pausedRef.current) return;
+
+        setRemaining((prev) => {
+          if (prev <= 1) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            router.back();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    }, [])
+  );
 
   const showFinish = isPaused && remaining > 0;
 
@@ -81,7 +91,7 @@ export default function SessionScreen() {
             style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
             <Ionicons
               name={isPaused ? 'play' : 'pause'}
-              size={28}
+              size={40}
               color={PALETTE.pale}
             />
           </Pressable>
@@ -131,14 +141,9 @@ const styles = StyleSheet.create({
   primaryButton: {
     position: 'absolute',
     bottom: 64,
-    width: 72,
-    height: 72,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(200,212,232,0.3)',
-    backgroundColor: 'rgba(74,111,165,0.5)',
   },
   secondaryButton: {
     position: 'absolute',
