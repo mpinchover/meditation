@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Audio } from 'expo-av';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { getCurrentDurationMinutes } from '@/constants/session';
+import { getCurrentDurationMinutes, getCurrentSound, getTrackMediaUrlByTitle } from '@/constants/session';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -30,6 +31,44 @@ export default function SessionScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
+  const meditationAudioRef = useRef<Audio.Sound | null>(null);
+
+  const stopMeditationAudio = useCallback(async () => {
+    if (!meditationAudioRef.current) return;
+
+    try {
+      await meditationAudioRef.current.stopAsync();
+    } catch {
+      // ignore stop errors while cleaning up
+    }
+
+    try {
+      await meditationAudioRef.current.unloadAsync();
+    } catch {
+      // ignore unload errors while cleaning up
+    }
+
+    meditationAudioRef.current = null;
+  }, []);
+
+  const startMeditationAudio = useCallback(async () => {
+    const selectedSound = getCurrentSound();
+    const mediaUrl = getTrackMediaUrlByTitle(selectedSound);
+    if (!mediaUrl) return;
+
+    await stopMeditationAudio();
+
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: mediaUrl },
+        { shouldPlay: true, isLooping: true }
+      );
+      meditationAudioRef.current = sound;
+    } catch {
+      // keep session timer running even if audio fails
+    }
+  }, [stopMeditationAudio]);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +83,7 @@ export default function SessionScreen() {
       setRemaining(initialSecondsRef.current);
       setIsPaused(false);
       pausedRef.current = false;
+      void startMeditationAudio();
 
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -59,6 +99,7 @@ export default function SessionScreen() {
               clearInterval(intervalRef.current);
               intervalRef.current = null;
             }
+            void stopMeditationAudio();
             router.back();
             return 0;
           }
@@ -71,8 +112,9 @@ export default function SessionScreen() {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
+        void stopMeditationAudio();
       };
-    }, [])
+    }, [startMeditationAudio, stopMeditationAudio])
   );
 
   const showFinish = isPaused && remaining > 0;
@@ -87,11 +129,14 @@ export default function SessionScreen() {
         <View style={styles.bottomControls}>
           <Pressable
             onPress={() => {
-              setIsPaused((prev) => {
-                const next = !prev;
-                pausedRef.current = next;
-                return next;
-              });
+              const next = !isPaused;
+              setIsPaused(next);
+              pausedRef.current = next;
+              if (next) {
+                void stopMeditationAudio();
+                return;
+              }
+              void startMeditationAudio();
             }}
             style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
             <Ionicons
@@ -103,7 +148,11 @@ export default function SessionScreen() {
 
           {showFinish ? (
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => {
+                void stopMeditationAudio().finally(() => {
+                  router.back();
+                });
+              }}
               style={({ pressed }) => [styles.secondaryButton, pressed && { opacity: 0.9 }]}>
               <Text style={styles.secondaryButtonText}>Finish</Text>
             </Pressable>
