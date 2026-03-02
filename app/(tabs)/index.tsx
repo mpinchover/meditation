@@ -87,7 +87,15 @@ export default function HomeScreen() {
                       styles.inputValue,
                       { fontFamily: sansRegular, color: PALETTE.pale },
                     ]}>
-                    {durationMinutes} minutes
+                    {(() => {
+                      const hrs = Math.floor(durationMinutes / 60);
+                      const mins = durationMinutes % 60;
+                      if (durationMinutes <= 0) return '0 min';
+                      const hrPart = hrs > 0 ? `${hrs} hr${hrs > 1 ? 's' : ''}` : '';
+                      const minPart = mins > 0 ? `${mins} min` : '';
+                      const sep = hrPart && minPart ? ' ' : '';
+                      return `${hrPart}${sep}${minPart}`;
+                    })()}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />

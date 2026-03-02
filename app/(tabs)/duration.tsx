@@ -1,5 +1,6 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { getCurrentDurationMinutes, setCurrentDurationMinutes } from '@/constants/session';
@@ -11,19 +12,65 @@ const PALETTE = {
   accent: '#7eb8d4',
 } as const;
 
-const DURATIONS = [5, 10, 15, 20, 30, 45, 60];
+const isIOS = Platform.OS === 'ios';
 
 export default function DurationScreen() {
-  const [selected, setSelected] = useState<number>(getCurrentDurationMinutes());
+  const initialTotalMinutes = getCurrentDurationMinutes();
+  const [totalMinutes, setTotalMinutes] = useState<number>(Math.max(0, initialTotalMinutes));
+
+  const initialDate = useMemo(() => {
+    const d = new Date();
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    d.setHours(hrs, mins, 0, 0);
+    return d;
+  }, [totalMinutes]);
+
+  const [pickerDate, setPickerDate] = useState<Date>(initialDate);
 
   function handleSelect() {
-    if (!selected) {
+    if (totalMinutes <= 0) {
       router.back();
       return;
     }
-    setCurrentDurationMinutes(selected);
+    setCurrentDurationMinutes(totalMinutes);
     router.back();
   }
+
+  function handleChange(event: any, date?: Date) {
+    if (isIOS) {
+      const durationMs = event?.nativeEvent?.duration;
+      if (typeof durationMs === 'number') {
+        const minsRaw = Math.round(durationMs / 60000);
+        const minsClamped = Math.max(0, Math.min(23 * 60 + 59, minsRaw));
+        setTotalMinutes(minsClamped);
+        return;
+      }
+
+      // Fallback for environments where duration is not provided, use date
+      if (date) {
+        const minsRaw = date.getHours() * 60 + date.getMinutes();
+        const minsClamped = Math.max(0, Math.min(23 * 60 + 59, minsRaw));
+        setTotalMinutes(minsClamped);
+      }
+      return;
+    }
+
+    if (!date) return;
+    setPickerDate(date);
+    const mins = date.getHours() * 60 + date.getMinutes();
+    setTotalMinutes(Math.max(0, mins));
+  }
+
+  const summaryText = useMemo(() => {
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (totalMinutes <= 0) return 'Total: 0 min';
+    const hrPart = hrs > 0 ? `${hrs} hr${hrs > 1 ? 's' : ''}` : '';
+    const minPart = mins > 0 ? `${mins} min` : '';
+    const sep = hrPart && minPart ? ' ' : '';
+    return `Total: ${hrPart}${sep}${minPart}`;
+  }, [totalMinutes]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -44,22 +91,19 @@ export default function DurationScreen() {
 
         <Text style={styles.subtitle}>How long would you like to meditate?</Text>
 
-        <View style={styles.list}>
-          {DURATIONS.map((m) => {
-            const active = selected === m;
-            return (
-              <Pressable
-                key={m}
-                style={({ pressed }) => [
-                  styles.row,
-                  active && styles.rowActive,
-                  pressed && { opacity: 0.9 },
-                ]}
-                onPress={() => setSelected(m)}>
-                <Text style={[styles.rowText, active && styles.rowTextActive]}>{m} minutes</Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.pickerContainer}>
+          <DateTimePicker
+            mode={isIOS ? 'countdown' : 'time'}
+            value={pickerDate}
+            display={isIOS ? 'spinner' : 'default'}
+            onChange={handleChange}
+            minuteInterval={5}
+            {...(isIOS ? { themeVariant: 'dark', textColor: PALETTE.pale } : {})}
+          />
+        </View>
+
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryText}>{summaryText}</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -100,27 +144,20 @@ const styles = StyleSheet.create({
     color: PALETTE.mist,
     marginBottom: 18,
   },
-  list: {
-    gap: 10,
-  },
-  row: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+  pickerContainer: {
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(200,212,232,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    paddingVertical: 8,
+    alignItems: 'center',
   },
-  rowText: {
-    fontSize: 15,
-    color: PALETTE.pale,
+  summaryRow: {
+    marginTop: 16,
   },
-  rowActive: {
-    borderColor: PALETTE.accent,
-    backgroundColor: 'rgba(126,184,212,0.12)',
-  },
-  rowTextActive: {
-    color: PALETTE.accent,
+  summaryText: {
+    fontSize: 14,
+    color: PALETTE.mist,
   },
   selectBtn: {
     paddingVertical: 6,
