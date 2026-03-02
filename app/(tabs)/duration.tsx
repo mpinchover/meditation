@@ -62,15 +62,6 @@ export default function DurationScreen() {
     setTotalMinutes(Math.max(0, mins));
   }
 
-  const summaryText = useMemo(() => {
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    if (totalMinutes <= 0) return 'Total: 0 min';
-    const hrPart = hrs > 0 ? `${hrs} hr${hrs > 1 ? 's' : ''}` : '';
-    const minPart = mins > 0 ? `${mins} min` : '';
-    const sep = hrPart && minPart ? ' ' : '';
-    return `Total: ${hrPart}${sep}${minPart}`;
-  }, [totalMinutes]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -97,14 +88,12 @@ export default function DurationScreen() {
             value={pickerDate}
             display={isIOS ? 'spinner' : 'default'}
             onChange={handleChange}
-            minuteInterval={5}
+            minuteInterval={1}
             {...(isIOS ? { themeVariant: 'dark', textColor: PALETTE.pale } : {})}
           />
         </View>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryText}>{summaryText}</Text>
-        </View>
+       
       </View>
     </SafeAreaView>
   );
@@ -155,10 +144,7 @@ const styles = StyleSheet.create({
   summaryRow: {
     marginTop: 16,
   },
-  summaryText: {
-    fontSize: 14,
-    color: PALETTE.mist,
-  },
+
   selectBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
