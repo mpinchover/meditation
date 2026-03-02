@@ -1,98 +1,295 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import {
+  CormorantGaramond_300Light,
+  CormorantGaramond_300Light_Italic,
+} from '@expo-google-fonts/cormorant-garamond';
+import {
+  Jost_200ExtraLight,
+  Jost_400Regular,
+} from '@expo-google-fonts/jost';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFonts } from 'expo-font';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { getCurrentDurationMinutes, getCurrentSound } from '@/constants/session';
+
+const PALETTE = {
+  ink: '#0d0d1a',
+  mist: '#8b9bb4',
+  silver: '#c8d4e8',
+  glow: '#4a6fa5',
+  pale: '#e8edf5',
+  accent: '#7eb8d4',
+} as const;
+
+
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [sound, setSound] = useState<string>(getCurrentSound());
+  const [durationMinutes, setDurationMinutes] = useState<number>(getCurrentDurationMinutes());
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const [fontsLoaded] = useFonts({
+    Jost_200ExtraLight,
+    Jost_400Regular,
+    CormorantGaramond_300Light,
+    CormorantGaramond_300Light_Italic,
+  });
+
+  const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
+  const sansThin = fontsLoaded ? 'Jost_200ExtraLight' : Platform.select({ default: 'System' });
+  const sansRegular = fontsLoaded ? 'Jost_400Regular' : Platform.select({ default: 'System' });
+
+  useFocusEffect(
+    useCallback(() => {
+      setSound(getCurrentSound());
+      setDurationMinutes(getCurrentDurationMinutes());
+    }, [])
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <View style={styles.bg}>
+        <View style={styles.moon} pointerEvents="none" />
+        <View style={styles.aurora} pointerEvents="none" />
+
+        <View style={styles.app}>
+          <View style={styles.header}>
+            <View style={styles.logoMark}>
+              <View style={styles.logoDot} />
+            </View>
+            <Text style={[styles.h1, { fontFamily: serif, color: PALETTE.silver }]}>Stillness</Text>
+            <Text
+              style={[
+                styles.subtitle,
+                { fontFamily: sansThin, color: PALETTE.mist, letterSpacing: 3.6 },
+              ]}>
+              Sleep Meditation
+            </Text>
+          </View>
+
+          <View style={styles.center}>
+            <View style={styles.inputs}>
+              <Pressable
+                onPress={() => router.push('/(tabs)/duration')}
+                style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
+                <View style={styles.inputTextCol}>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      { fontFamily: sansThin, color: PALETTE.mist },
+                    ]}>
+                    Duration
+                  </Text>
+                  <Text
+                    style={[
+                      styles.inputValue,
+                      { fontFamily: sansRegular, color: PALETTE.pale },
+                    ]}>
+                    {durationMinutes} minutes
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/(tabs)/sound')}
+                style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
+                <View style={styles.inputTextCol}>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      { fontFamily: sansThin, color: PALETTE.mist },
+                    ]}>
+                    Sound
+                  </Text>
+                  <Text
+                    style={[
+                      styles.inputValue,
+                      { fontFamily: sansRegular, color: PALETTE.pale },
+                    ]}>
+                    {sound}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+              </Pressable>
+            </View>
+
+            <View style={styles.playWrapper}>
+              <Pressable
+                onPress={() => {
+                  // Later: start meditation session / navigate to active screen
+                }}
+                style={({ pressed }) => [
+                  styles.playButton,
+                  pressed && { transform: [{ scale: 0.97 }] },
+                ]}>
+                <Ionicons name="play" size={40} color={PALETTE.silver} style={{ marginLeft: 4 }} />
+              </Pressable>
+
+            </View>
+          </View>
+
+
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safe: {
+    flex: 1,
+    backgroundColor: PALETTE.ink,
+  },
+  bg: {
+    flex: 1,
+    backgroundColor: PALETTE.ink,
+  },
+  moon: {
+    position: 'absolute',
+    top: -140,
+    right: -100,
+    width: 360,
+    height: 360,
+    borderRadius: 999,
+    opacity: 0.12,
+    backgroundColor: PALETTE.silver,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage:
+            'radial-gradient(circle at 40% 40%, #c8d4e8 0%, #8b9bb4 40%, rgba(0,0,0,0) 70%)',
+        } as any)
+      : null),
+  },
+  aurora: {
+    position: 'absolute',
+    bottom: -220,
+    left: -120,
+    width: 820,
+    height: 420,
+    borderRadius: 999,
+    opacity: 0.3,
+    backgroundColor: 'rgba(74,111,165,0.18)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage:
+            'radial-gradient(ellipse, rgba(74,111,165,0.18) 0%, rgba(126,184,212,0.10) 40%, rgba(0,0,0,0) 70%)',
+        } as any)
+      : null),
+  },
+  app: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoMark: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(200,212,232,0.3)',
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(126,184,212,0.6)',
+    shadowColor: 'rgba(126,184,212,0.9)',
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  h1: {
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: 4.2,
+  },
+  subtitle: {
+    marginTop: 6,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    fontWeight: '200',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  inputs: {
+    gap: 12,
+    marginBottom: 40,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,212,232,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  inputTextCol: {
+    flexDirection: 'column',
+    gap: 2,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  inputLabel: {
+    fontSize: 11,
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+  },
+  inputValue: {
+    fontSize: 16,
+  },
+  playWrapper: {
+    alignItems: 'center',
+    gap: 14,
+  },
+  playButton: {
+    width: 94,
+    height: 94,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(200,212,232,0.35)',
+    backgroundColor: 'rgba(74,111,165,0.35)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage:
+            'radial-gradient(circle at 30% 30%, rgba(232,237,245,0.16), rgba(74,111,165,0.35))',
+        } as any)
+      : null),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(74,111,165,1)',
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  playHint: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    letterSpacing: 1.2,
+  },
+  footer: {
+    paddingTop: 24,
+    alignItems: 'center',
+  },
+  greetingText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });

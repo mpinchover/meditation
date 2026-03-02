@@ -7,14 +7,26 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors.dark.text,
+        tabBarInactiveTintColor: Colors.dark.text,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarItemStyle: {
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        tabBarLabelStyle: {
+          textAlign: 'center',
+        },
+        tabBarStyle: {
+          backgroundColor: '#000000',
+          borderTopColor: 'rgba(255,255,255,0.08)',
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -28,6 +40,18 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="duration"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="sound"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
