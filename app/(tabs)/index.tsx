@@ -119,7 +119,7 @@ export default function HomeScreen() {
             <View style={styles.playWrapper}>
               <Pressable
                 onPress={() => {
-                  // Later: start meditation session / navigate to active screen
+                  router.push('/(tabs)/session');
                 }}
                 style={({ pressed }) => [
                   styles.playButton,
