@@ -1,8 +1,15 @@
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { Audio } from 'expo-av';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { getCurrentSound, setCurrentSound } from '@/constants/session';
+import {
+  getAvailableSounds,
+  getCurrentSound,
+  getTrackMediaUrlByTitle,
+  setCurrentSound,
+  subscribeToSessionChanges,
+} from '@/constants/session';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -11,19 +18,74 @@ const PALETTE = {
   accent: '#7eb8d4',
 } as const;
 
-const SOUNDS = [
-  'Soft rain',
-  'Ocean tide',
-  'Night forest',
-  'White noise',
-  'Singing bowls',
-  'Tibetan monastery',
-];
-
 export default function SoundScreen() {
   const [selected, setSelected] = useState<string>(getCurrentSound());
+  const [sounds, setSounds] = useState<string[]>(getAvailableSounds());
+  const previewRef = useRef<Audio.Sound | null>(null);
 
-  function handleSave() {
+  const stopPreview = useCallback(async () => {
+    if (!previewRef.current) return;
+
+    try {
+      await previewRef.current.stopAsync();
+    } catch {
+      // ignore stop errors while cleaning up
+    }
+
+    try {
+      await previewRef.current.unloadAsync();
+    } catch {
+      // ignore unload errors while cleaning up
+    }
+
+    previewRef.current = null;
+  }, []);
+
+  const playPreview = useCallback(
+    async (name: string) => {
+      setSelected(name);
+      const mediaUrl = getTrackMediaUrlByTitle(name);
+      await stopPreview();
+      if (!mediaUrl) return;
+
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: mediaUrl },
+          { shouldPlay: true, isLooping: true }
+        );
+        previewRef.current = sound;
+      } catch {
+        // keep UI responsive even if preview fails
+      }
+    },
+    [stopPreview]
+  );
+
+  useEffect(() => {
+    void Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+
+    return subscribeToSessionChanges(() => {
+      setSounds(getAvailableSounds());
+      setSelected(getCurrentSound());
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        void stopPreview();
+      };
+    }, [stopPreview])
+  );
+
+  useEffect(() => {
+    return () => {
+      void stopPreview();
+    };
+  }, [stopPreview]);
+
+  async function handleSave() {
+    await stopPreview();
     if (!selected) {
       router.back();
       return;
@@ -37,7 +99,11 @@ export default function SoundScreen() {
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              void stopPreview().finally(() => {
+                router.back();
+              });
+            }}
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
@@ -52,7 +118,7 @@ export default function SoundScreen() {
      
 
         <View style={styles.list}>
-          {SOUNDS.map((name) => {
+          {sounds.map((name) => {
             const active = selected === name;
             return (
               <Pressable
@@ -62,7 +128,9 @@ export default function SoundScreen() {
                   active && styles.rowActive,
                   pressed && { opacity: 0.9 },
                 ]}
-                onPress={() => setSelected(name)}>
+                onPress={() => {
+                  void playPreview(name);
+                }}>
                 <Text style={[styles.rowText, active && styles.rowTextActive]}>{name}</Text>
               </Pressable>
             );
