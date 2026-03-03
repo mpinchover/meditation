@@ -1,4 +1,4 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
@@ -15,6 +15,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.dark.text,
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.46)',
+        tabBarShowLabel: false,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarItemStyle: {
@@ -39,8 +40,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="settings" color={color} />,
+          title: 'Account',
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="person-circle-outline" color={color} />,
         }}
       />
       <Tabs.Screen

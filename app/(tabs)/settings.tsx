@@ -17,7 +17,7 @@ const PALETTE = {
   danger: '#ff6b6b',
 } as const;
 
-export default function SettingsScreen() {
+export default function AccountScreen() {
   const [fontsLoaded] = useFonts({
     CormorantGaramond_300Light,
   });
@@ -52,7 +52,7 @@ export default function SettingsScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={styles.container}>
-          <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Settings</Text>
+          <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Account</Text>
           <View style={styles.loginOnlyContainer}>
             <Pressable
               onPress={() => router.push('/modal')}
@@ -68,7 +68,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Settings</Text>
+        <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Account</Text>
 
         <View style={styles.section}>
           <Text style={styles.label}>Email address</Text>
