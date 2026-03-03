@@ -72,13 +72,14 @@ export default function DurationScreen() {
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <Text style={styles.title}>Duration</Text>
           <Pressable
             onPress={handleSelect}
             style={({ pressed }) => [styles.selectBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.selectText}>Select</Text>
           </Pressable>
         </View>
+
+        <Text style={styles.screenTitle}>Duration</Text>
 
         <View style={styles.pickerContainer}>
           <DateTimePicker
@@ -121,10 +122,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: PALETTE.mist,
   },
-  title: {
-    fontSize: 18,
+  screenTitle: {
+    fontSize: 42,
     color: PALETTE.pale,
-    fontWeight: '600',
+    fontWeight: '700',
+    textAlign: 'left',
+    marginLeft: 8,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 14,

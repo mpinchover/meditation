@@ -107,7 +107,6 @@ export default function SoundScreen() {
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <Text style={styles.title}>Sound</Text>
           <Pressable
             onPress={handleSave}
             style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.7 }]}>
@@ -115,9 +114,7 @@ export default function SoundScreen() {
           </Pressable>
         </View>
 
-     
-
-       
+        <Text style={styles.screenTitle}>Sound</Text>
 
         <View style={styles.list}>
           {sounds.map((name) => {
@@ -176,10 +173,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: PALETTE.mist,
   },
-  title: {
-    fontSize: 18,
+  screenTitle: {
+    fontSize: 42,
     color: PALETTE.pale,
-    fontWeight: '600',
+    fontWeight: '700',
+    textAlign: 'left',
+    marginLeft: 8,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 14,
