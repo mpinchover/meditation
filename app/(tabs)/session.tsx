@@ -26,10 +26,19 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function SessionScreen() {
-  const { currentDurationMinutes, currentSound, availableTracks } = useSessionState();
+  const {
+    currentDurationMinutes,
+    currentSound,
+    availableTracks,
+    currentEndingBell,
+    availableEndingBells,
+  } = useSessionState();
   const selectedTrackUrl = useMemo(() => {
     return availableTracks.find((track) => track.title === currentSound)?.media_url;
   }, [availableTracks, currentSound]);
+  const selectedEndingBellUrl = useMemo(() => {
+    return availableEndingBells.find((track) => track.title === currentEndingBell)?.media_url;
+  }, [availableEndingBells, currentEndingBell]);
 
   const initialSecondsRef = useRef(currentDurationMinutes * 60);
   const [remaining, setRemaining] = useState(initialSecondsRef.current);
@@ -37,6 +46,8 @@ export default function SessionScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
   const meditationAudioRef = useRef<Audio.Sound | null>(null);
+  const endingBellAudioRef = useRef<Audio.Sound | null>(null);
+  const hasPlayedEndingBellRef = useRef(false);
   const breathingAnim = useRef(new Animated.Value(0)).current;
 
   const stopMeditationAudio = useCallback(async () => {
@@ -66,6 +77,21 @@ export default function SessionScreen() {
     }
   }, []);
 
+  const stopEndingBellAudio = useCallback(async () => {
+    if (!endingBellAudioRef.current) return;
+    try {
+      await endingBellAudioRef.current.stopAsync();
+    } catch {
+      // ignore stop errors while cleaning up
+    }
+    try {
+      await endingBellAudioRef.current.unloadAsync();
+    } catch {
+      // ignore unload errors while cleaning up
+    }
+    endingBellAudioRef.current = null;
+  }, []);
+
   const startMeditationAudio = useCallback(async () => {
     if (meditationAudioRef.current) {
       try {
@@ -90,6 +116,21 @@ export default function SessionScreen() {
     }
   }, [selectedTrackUrl, stopMeditationAudio]);
 
+  const playEndingBellAudio = useCallback(async () => {
+    if (!selectedEndingBellUrl) return;
+    await stopEndingBellAudio();
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: selectedEndingBellUrl },
+        { shouldPlay: true, isLooping: false }
+      );
+      endingBellAudioRef.current = sound;
+    } catch {
+      // keep completion flow working even if ending bell fails
+    }
+  }, [selectedEndingBellUrl, stopEndingBellAudio]);
+
   useFocusEffect(
     useCallback(() => {
       const minutes = currentDurationMinutes;
@@ -112,6 +153,7 @@ export default function SessionScreen() {
       setRemaining(initialSecondsRef.current);
       setIsPaused(false);
       pausedRef.current = false;
+      hasPlayedEndingBellRef.current = false;
       void startMeditationAudio();
 
       if (intervalRef.current) {
@@ -133,8 +175,9 @@ export default function SessionScreen() {
           intervalRef.current = null;
         }
         void stopMeditationAudio();
+        void stopEndingBellAudio();
       };
-    }, [currentDurationMinutes, startMeditationAudio, stopMeditationAudio])
+    }, [currentDurationMinutes, startMeditationAudio, stopEndingBellAudio, stopMeditationAudio])
   );
 
   useEffect(() => {
@@ -147,7 +190,12 @@ export default function SessionScreen() {
 
     pausedRef.current = true;
     setIsPaused(true);
-  }, [remaining]);
+
+    if (!hasPlayedEndingBellRef.current) {
+      hasPlayedEndingBellRef.current = true;
+      void playEndingBellAudio();
+    }
+  }, [playEndingBellAudio, remaining]);
 
   const hasCompleted = remaining === 0;
   const showFinish = hasCompleted || (isPaused && remaining > 0);
@@ -232,7 +280,7 @@ export default function SessionScreen() {
           {showFinish ? (
             <Pressable
               onPress={() => {
-                void stopMeditationAudio().finally(() => {
+                void Promise.all([stopMeditationAudio(), stopEndingBellAudio()]).finally(() => {
                   router.back();
                 });
               }}
