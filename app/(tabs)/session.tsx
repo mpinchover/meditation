@@ -96,8 +96,17 @@ export default function SessionScreen() {
       initialSecondsRef.current = minutes * 60;
 
       if (initialSecondsRef.current <= 0) {
-        router.back();
-        return;
+        setRemaining(0);
+        setIsPaused(true);
+        pausedRef.current = true;
+        void stopMeditationAudio();
+        return () => {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          void stopMeditationAudio();
+        };
       }
 
       setRemaining(initialSecondsRef.current);
@@ -114,16 +123,7 @@ export default function SessionScreen() {
         if (pausedRef.current) return;
 
         setRemaining((prev) => {
-          if (prev <= 1) {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
-            void stopMeditationAudio();
-            router.back();
-            return 0;
-          }
-          return prev - 1;
+          return prev <= 1 ? 0 : prev - 1;
         });
       }, 1000);
 
@@ -137,7 +137,20 @@ export default function SessionScreen() {
     }, [currentDurationMinutes, startMeditationAudio, stopMeditationAudio])
   );
 
-  const showFinish = isPaused && remaining > 0;
+  useEffect(() => {
+    if (remaining !== 0) return;
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    pausedRef.current = true;
+    setIsPaused(true);
+  }, [remaining]);
+
+  const hasCompleted = remaining === 0;
+  const showFinish = hasCompleted || (isPaused && remaining > 0);
   const isMeditationActive = remaining > 0 && !isPaused;
 
   useEffect(() => {
@@ -195,24 +208,26 @@ export default function SessionScreen() {
         </View>
 
         <View style={styles.bottomControls}>
-          <Pressable
-            onPress={() => {
-              const next = !isPaused;
-              setIsPaused(next);
-              pausedRef.current = next;
-              if (next) {
-                void pauseMeditationAudio();
-                return;
-              }
-              void startMeditationAudio();
-            }}
-            style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
-            <Ionicons
-              name={isPaused ? 'play' : 'pause'}
-              size={40}
-              color={PALETTE.pale}
-            />
-          </Pressable>
+          {!hasCompleted ? (
+            <Pressable
+              onPress={() => {
+                const next = !isPaused;
+                setIsPaused(next);
+                pausedRef.current = next;
+                if (next) {
+                  void pauseMeditationAudio();
+                  return;
+                }
+                void startMeditationAudio();
+              }}
+              style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
+              <Ionicons
+                name={isPaused ? 'play' : 'pause'}
+                size={40}
+                color={PALETTE.pale}
+              />
+            </Pressable>
+          ) : null}
 
           {showFinish ? (
             <Pressable
