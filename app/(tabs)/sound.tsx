@@ -46,6 +46,7 @@ export default function SoundScreen() {
   const [selected, setSelected] = useState<string>(currentSelection);
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const previewRef = useRef<Audio.Sound | null>(null);
+  const soundCacheRef = useRef<Map<string, Audio.Sound>>(new Map());
 
   const stopPreview = useCallback(async () => {
     if (!previewRef.current) return;
@@ -57,27 +58,54 @@ export default function SoundScreen() {
     }
 
     try {
-      await previewRef.current.unloadAsync();
+      await previewRef.current.setPositionAsync(0);
     } catch {
-      // ignore unload errors while cleaning up
+      // ignore reset errors while cleaning up
     }
 
     previewRef.current = null;
   }, []);
 
+  const unloadAllPreviews = useCallback(async () => {
+    await stopPreview();
+    const cachedSounds = Array.from(soundCacheRef.current.values());
+    for (const sound of cachedSounds) {
+      try {
+        await sound.unloadAsync();
+      } catch {
+        // ignore unload errors during teardown
+      }
+    }
+    soundCacheRef.current.clear();
+  }, [stopPreview]);
+
   const playPreview = useCallback(
     async (name: string) => {
       setSelected(name);
-      const mediaUrl = sourceTracks.find((track) => track.title === name)?.media_url;
       await stopPreview();
+
+      const cached = soundCacheRef.current.get(name);
+      if (cached) {
+        previewRef.current = cached;
+        try {
+          await cached.playFromPositionAsync(0);
+        } catch {
+          // ignore playback errors and keep UI responsive
+        }
+        return;
+      }
+
+      const mediaUrl = sourceTracks.find((track) => track.title === name)?.media_url;
       if (!mediaUrl) return;
 
       try {
         const { sound } = await Audio.Sound.createAsync(
           { uri: mediaUrl },
-          { shouldPlay: true, isLooping: true }
+          { shouldPlay: false, isLooping: true }
         );
+        soundCacheRef.current.set(name, sound);
         previewRef.current = sound;
+        await sound.playFromPositionAsync(0);
       } catch {
         // keep UI responsive even if preview fails
       }
@@ -86,22 +114,56 @@ export default function SoundScreen() {
   );
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const preload = async () => {
+      for (const track of sourceTracks) {
+        if (isCancelled) return;
+        if (!track.media_url || soundCacheRef.current.has(track.title)) continue;
+
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: track.media_url },
+            { shouldPlay: false, isLooping: true }
+          );
+          if (isCancelled) {
+            try {
+              await sound.unloadAsync();
+            } catch {
+              // ignore unload errors during cancellation
+            }
+            return;
+          }
+          soundCacheRef.current.set(track.title, sound);
+        } catch {
+          // keep preloading best-effort
+        }
+      }
+    };
+
+    void preload();
+    return () => {
+      isCancelled = true;
+    };
+  }, [sourceTracks]);
+
+  useEffect(() => {
     void Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       return () => {
-        void stopPreview();
+        void unloadAllPreviews();
       };
-    }, [stopPreview])
+    }, [unloadAllPreviews])
   );
 
   useEffect(() => {
     return () => {
-      void stopPreview();
+      void unloadAllPreviews();
     };
-  }, [stopPreview]);
+  }, [unloadAllPreviews]);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (nextUser) => {
