@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { auth } from '@/constants/firebase';
 import { useSessionState } from '@/constants/session-context';
@@ -45,8 +45,10 @@ export default function SoundScreen() {
   }, [currentSelection, sourceTracks]);
   const [selected, setSelected] = useState<string>(currentSelection);
   const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [playingName, setPlayingName] = useState<string | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
   const soundCacheRef = useRef<Map<string, Audio.Sound>>(new Map());
+  const playingPulse = useRef(new Animated.Value(0)).current;
 
   const stopPreview = useCallback(async () => {
     if (!previewRef.current) return;
@@ -64,6 +66,7 @@ export default function SoundScreen() {
     }
 
     previewRef.current = null;
+    setPlayingName(null);
   }, []);
 
   const unloadAllPreviews = useCallback(async () => {
@@ -89,8 +92,10 @@ export default function SoundScreen() {
         previewRef.current = cached;
         try {
           await cached.playFromPositionAsync(0);
+          setPlayingName(name);
         } catch {
           // ignore playback errors and keep UI responsive
+          setPlayingName(null);
         }
         return;
       }
@@ -106,8 +111,10 @@ export default function SoundScreen() {
         soundCacheRef.current.set(name, sound);
         previewRef.current = sound;
         await sound.playFromPositionAsync(0);
+        setPlayingName(name);
       } catch {
         // keep UI responsive even if preview fails
+        setPlayingName(null);
       }
     },
     [sourceTracks, stopPreview]
@@ -175,6 +182,32 @@ export default function SoundScreen() {
     setSelected(currentSelection);
   }, [currentSelection]);
 
+  useEffect(() => {
+    if (!playingName) {
+      playingPulse.stopAnimation();
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(playingPulse, {
+          toValue: 1,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(playingPulse, {
+          toValue: 0,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+    };
+  }, [playingName, playingPulse]);
+
   async function handleSave() {
     await stopPreview();
     if (!selected) {
@@ -225,6 +258,15 @@ export default function SoundScreen() {
         <View style={styles.list}>
           {sounds.map((name) => {
             const active = selected === name;
+            const isPlayingThis = playingName === name;
+            const pulseScale = playingPulse.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.92, 1.16],
+            });
+            const pulseOpacity = playingPulse.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.55, 1],
+            });
             return (
               <Pressable
                 key={name}
@@ -238,21 +280,33 @@ export default function SoundScreen() {
                 }}>
                 <View style={styles.rowInner}>
                   <Text style={[styles.rowText, active && styles.rowTextActive]}>{name}</Text>
-                
+                  {isPlayingThis ? (
+                    <Animated.View
+                      style={[
+                        styles.playingDot,
+                        {
+                          transform: [{ scale: pulseScale }],
+                          opacity: pulseOpacity,
+                        },
+                      ]}
+                    />
+                  ) : null}
                 </View>
               </Pressable>
             );
           })}
         </View>
 
-        { !user ? (
-          <View style={styles.loginGate}>
-            <Text style={styles.loginPromptText}>Log in for more sounds</Text>
-            <Pressable
-              onPress={() => router.push('/modal')}
-              style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
-              <Text style={styles.loginButtonText}>Log in</Text>
-            </Pressable>
+        {!user ? (
+          <View style={styles.loginGateAnchor}>
+            <View style={styles.loginGate}>
+              <Text style={styles.loginPromptText}>Log in for more sounds</Text>
+              <Pressable
+                onPress={() => router.push('/modal')}
+                style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.loginButtonText}>Log in</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -301,9 +355,14 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
   },
+  loginGateAnchor: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 50,
+  },
   loginGate: {
-    height: '50%',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   loginPromptText: {
     textAlign: 'center',
@@ -360,6 +419,12 @@ const styles = StyleSheet.create({
   },
   rowTextActive: {
     color: PALETTE.accent,
+  },
+  playingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: PALETTE.accent,
   },
   saveBtn: {
     paddingVertical: 6,
