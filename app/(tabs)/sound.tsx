@@ -37,6 +37,7 @@ export default function SoundScreen() {
   const currentSelection = isEndingBellMode ? currentEndingBell : currentSound;
   const setCurrentSelection = isEndingBellMode ? setCurrentEndingBell : setCurrentSound;
   const sourceTracks = isEndingBellMode ? availableEndingBells : availableTracks;
+  const shouldLoopPreview = !isEndingBellMode;
 
   const sounds = useMemo(() => {
     const titles = sourceTracks.map((track) => track.title).filter(Boolean);
@@ -76,6 +77,7 @@ export default function SoundScreen() {
       if (cached) {
         previewRef.current = cached;
         try {
+          await cached.setIsLoopingAsync(shouldLoopPreview);
           await cached.playFromPositionAsync(0);
           setPlayingName(name);
         } catch {
@@ -91,7 +93,7 @@ export default function SoundScreen() {
       try {
         const { sound } = await Audio.Sound.createAsync(
           { uri: mediaUrl },
-          { shouldPlay: false, isLooping: true }
+          { shouldPlay: false, isLooping: shouldLoopPreview }
         );
         sharedSoundCache.set(name, sound);
         previewRef.current = sound;
@@ -102,7 +104,7 @@ export default function SoundScreen() {
         setPlayingName(null);
       }
     },
-    [sourceTracks, stopPreview]
+    [shouldLoopPreview, sourceTracks, stopPreview]
   );
 
   useEffect(() => {
@@ -117,7 +119,7 @@ export default function SoundScreen() {
           try {
             const { sound } = await Audio.Sound.createAsync(
               { uri: track.media_url },
-              { shouldPlay: false, isLooping: true }
+              { shouldPlay: false, isLooping: shouldLoopPreview }
             );
             if (isCancelled) {
               try {
@@ -139,7 +141,7 @@ export default function SoundScreen() {
     return () => {
       isCancelled = true;
     };
-  }, [sourceTracks]);
+  }, [shouldLoopPreview, sourceTracks]);
 
   useEffect(() => {
     void Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
