@@ -1,8 +1,8 @@
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFonts } from 'expo-font';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionState } from '@/constants/session-context';
@@ -17,6 +17,13 @@ const PALETTE = {
 
 const isIOS = Platform.OS === 'ios';
 
+function minutesToPickerDate(totalMinutes: number) {
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
+  const d = new Date();
+  d.setHours(Math.floor(clamped / 60), clamped % 60, 0, 0);
+  return d;
+}
+
 export default function DurationScreen() {
   const [fontsLoaded] = useFonts({
     CormorantGaramond_300Light,
@@ -26,16 +33,14 @@ export default function DurationScreen() {
   const { currentDurationMinutes, setCurrentDurationMinutes } = useSessionState();
   const initialTotalMinutes = currentDurationMinutes;
   const [totalMinutes, setTotalMinutes] = useState<number>(Math.max(0, initialTotalMinutes));
+  const pickerDate = useMemo(() => minutesToPickerDate(totalMinutes), [totalMinutes]);
 
-  const initialDate = useMemo(() => {
-    const d = new Date();
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    d.setHours(hrs, mins, 0, 0);
-    return d;
-  }, [totalMinutes]);
-
-  const [pickerDate, setPickerDate] = useState<Date>(initialDate);
+  useFocusEffect(
+    useCallback(() => {
+      const syncedMinutes = Math.max(0, currentDurationMinutes);
+      setTotalMinutes(syncedMinutes);
+    }, [currentDurationMinutes])
+  );
 
   function handleSelect() {
     if (totalMinutes <= 0) {
@@ -66,9 +71,9 @@ export default function DurationScreen() {
     }
 
     if (!date) return;
-    setPickerDate(date);
     const mins = date.getHours() * 60 + date.getMinutes();
-    setTotalMinutes(Math.max(0, mins));
+    const minsClamped = Math.max(0, Math.min(23 * 60 + 59, mins));
+    setTotalMinutes(minsClamped);
   }
 
 

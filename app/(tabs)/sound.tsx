@@ -230,7 +230,7 @@ export default function SoundScreen() {
           <Pressable
             onPress={handleSave}
             style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.7 }]}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={styles.saveText}>Select</Text>
           </Pressable>
         </View>
 
