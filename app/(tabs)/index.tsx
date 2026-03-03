@@ -10,10 +10,11 @@ import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { prewarmMeditationSound } from '@/constants/meditation-audio';
 import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
@@ -32,7 +33,11 @@ export default function HomeScreen() {
     currentSound: sound,
     currentEndingBell: endingBell,
     currentDurationMinutes: durationMinutes,
+    availableTracks,
   } = useSessionState();
+  const selectedMeditationTrack = useMemo(() => {
+    return availableTracks.find((track) => track.title === sound);
+  }, [availableTracks, sound]);
 
   const [fontsLoaded] = useFonts({
     Jost_200ExtraLight,
@@ -44,6 +49,12 @@ export default function HomeScreen() {
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
   const sansThin = fontsLoaded ? 'Jost_200ExtraLight' : Platform.select({ default: 'System' });
   const sansRegular = fontsLoaded ? 'Jost_400Regular' : Platform.select({ default: 'System' });
+
+  useEffect(() => {
+    if (!selectedMeditationTrack?.media_url) return;
+    const cacheKey = selectedMeditationTrack.uuid || selectedMeditationTrack.title;
+    void prewarmMeditationSound(cacheKey, selectedMeditationTrack.media_url);
+  }, [selectedMeditationTrack]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>

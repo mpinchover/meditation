@@ -4,6 +4,12 @@ import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import {
+  pauseMeditationSound,
+  playMeditationSound,
+  prewarmMeditationSound,
+  stopMeditationSound,
+} from '@/constants/meditation-audio';
 import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
@@ -36,6 +42,11 @@ export default function SessionScreen() {
   const selectedTrackUrl = useMemo(() => {
     return availableTracks.find((track) => track.title === currentSound)?.media_url;
   }, [availableTracks, currentSound]);
+  const selectedTrackCacheKey = useMemo(() => {
+    const selectedTrack = availableTracks.find((track) => track.title === currentSound);
+    if (!selectedTrack) return '';
+    return selectedTrack.uuid || selectedTrack.title;
+  }, [availableTracks, currentSound]);
   const selectedEndingBellUrl = useMemo(() => {
     return availableEndingBells.find((track) => track.title === currentEndingBell)?.media_url;
   }, [availableEndingBells, currentEndingBell]);
@@ -46,35 +57,20 @@ export default function SessionScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
   const meditationAudioRef = useRef<Audio.Sound | null>(null);
+  const meditationAudioKeyRef = useRef<string>('');
   const endingBellAudioRef = useRef<Audio.Sound | null>(null);
+  const endingBellAudioUrlRef = useRef<string>('');
   const hasPlayedEndingBellRef = useRef(false);
   const breathingAnim = useRef(new Animated.Value(0)).current;
 
   const stopMeditationAudio = useCallback(async () => {
-    if (!meditationAudioRef.current) return;
-
-    try {
-      await meditationAudioRef.current.stopAsync();
-    } catch {
-      // ignore stop errors while cleaning up
-    }
-
-    try {
-      await meditationAudioRef.current.unloadAsync();
-    } catch {
-      // ignore unload errors while cleaning up
-    }
-
+    await stopMeditationSound(meditationAudioRef.current);
     meditationAudioRef.current = null;
+    meditationAudioKeyRef.current = '';
   }, []);
 
   const pauseMeditationAudio = useCallback(async () => {
-    if (!meditationAudioRef.current) return;
-    try {
-      await meditationAudioRef.current.pauseAsync();
-    } catch {
-      // ignore pause errors while toggling playback
-    }
+    await pauseMeditationSound(meditationAudioRef.current);
   }, []);
 
   const stopEndingBellAudio = useCallback(async () => {
@@ -90,10 +86,16 @@ export default function SessionScreen() {
       // ignore unload errors while cleaning up
     }
     endingBellAudioRef.current = null;
+    endingBellAudioUrlRef.current = '';
   }, []);
 
   const startMeditationAudio = useCallback(async () => {
-    if (meditationAudioRef.current) {
+    if (!selectedTrackUrl || !selectedTrackCacheKey) return;
+
+    if (
+      meditationAudioRef.current &&
+      meditationAudioKeyRef.current === selectedTrackCacheKey
+    ) {
       try {
         await meditationAudioRef.current.playAsync();
         return;
@@ -102,22 +104,32 @@ export default function SessionScreen() {
       }
     }
 
-    if (!selectedTrackUrl) return;
+    if (meditationAudioRef.current) {
+      await stopMeditationAudio();
+    }
 
     try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: selectedTrackUrl },
-        { shouldPlay: true, isLooping: true }
-      );
-      meditationAudioRef.current = sound;
+      meditationAudioRef.current = await playMeditationSound(selectedTrackCacheKey, selectedTrackUrl);
+      meditationAudioKeyRef.current = selectedTrackCacheKey;
     } catch {
       // keep session timer running even if audio fails
     }
-  }, [selectedTrackUrl, stopMeditationAudio]);
+  }, [selectedTrackCacheKey, selectedTrackUrl, stopMeditationAudio]);
 
   const playEndingBellAudio = useCallback(async () => {
     if (!selectedEndingBellUrl) return;
+    if (
+      endingBellAudioRef.current &&
+      endingBellAudioUrlRef.current === selectedEndingBellUrl
+    ) {
+      try {
+        await endingBellAudioRef.current.playFromPositionAsync(0);
+        return;
+      } catch {
+        await stopEndingBellAudio();
+      }
+    }
+
     await stopEndingBellAudio();
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -126,6 +138,7 @@ export default function SessionScreen() {
         { shouldPlay: true, isLooping: false }
       );
       endingBellAudioRef.current = sound;
+      endingBellAudioUrlRef.current = selectedEndingBellUrl;
     } catch {
       // keep completion flow working even if ending bell fails
     }
@@ -179,6 +192,25 @@ export default function SessionScreen() {
       };
     }, [currentDurationMinutes, startMeditationAudio, stopEndingBellAudio, stopMeditationAudio])
   );
+
+  useEffect(() => {
+    if (!selectedTrackUrl || !selectedTrackCacheKey) return;
+    void prewarmMeditationSound(selectedTrackCacheKey, selectedTrackUrl);
+  }, [selectedTrackCacheKey, selectedTrackUrl]);
+
+  useEffect(() => {
+    if (!selectedTrackCacheKey) return;
+    if (meditationAudioKeyRef.current === selectedTrackCacheKey) return;
+    if (!meditationAudioRef.current) return;
+    void stopMeditationAudio();
+  }, [selectedTrackCacheKey, stopMeditationAudio]);
+
+  useEffect(() => {
+    if (!selectedEndingBellUrl) return;
+    if (endingBellAudioUrlRef.current === selectedEndingBellUrl) return;
+    if (!endingBellAudioRef.current) return;
+    void stopEndingBellAudio();
+  }, [selectedEndingBellUrl, stopEndingBellAudio]);
 
   useEffect(() => {
     if (remaining !== 0) return;
