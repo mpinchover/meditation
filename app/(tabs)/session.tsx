@@ -51,12 +51,28 @@ export default function SessionScreen() {
     meditationAudioRef.current = null;
   }, []);
 
+  const pauseMeditationAudio = useCallback(async () => {
+    if (!meditationAudioRef.current) return;
+    try {
+      await meditationAudioRef.current.pauseAsync();
+    } catch {
+      // ignore pause errors while toggling playback
+    }
+  }, []);
+
   const startMeditationAudio = useCallback(async () => {
+    if (meditationAudioRef.current) {
+      try {
+        await meditationAudioRef.current.playAsync();
+        return;
+      } catch {
+        await stopMeditationAudio();
+      }
+    }
+
     const selectedSound = getCurrentSound();
     const mediaUrl = getTrackMediaUrlByTitle(selectedSound);
     if (!mediaUrl) return;
-
-    await stopMeditationAudio();
 
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -133,7 +149,7 @@ export default function SessionScreen() {
               setIsPaused(next);
               pausedRef.current = next;
               if (next) {
-                void stopMeditationAudio();
+                void pauseMeditationAudio();
                 return;
               }
               void startMeditationAudio();
