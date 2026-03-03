@@ -202,8 +202,8 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 24,
+    right: 24,
     bottom: 24,
     height: 120,
     alignItems: 'center',
@@ -218,18 +218,17 @@ const styles = StyleSheet.create({
   secondaryButton: {
     position: 'absolute',
     bottom: 0,
-    minWidth: 140,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    width: '100%',
+    paddingVertical: 14,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(200,212,232,0.2)',
-    backgroundColor: 'transparent',
+    borderColor: PALETTE.pale,
+    backgroundColor: PALETTE.pale,
+    alignItems: 'center',
   },
   secondaryButtonText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: PALETTE.mist,
+    fontSize: 15,
+    color: PALETTE.ink,
   },
 });
 
