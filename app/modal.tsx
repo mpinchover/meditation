@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +13,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+import { auth, normalizeUsernameToEmail } from '@/constants/firebase';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -23,13 +27,49 @@ export default function ModalScreen() {
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const buttonLabel = useMemo(() => (isCreateMode ? 'Create account' : 'Log in'), [isCreateMode]);
-  const isDisabled = username.trim().length === 0 || password.trim().length === 0;
+  const isDisabled =
+    isSubmitting ||
+    username.trim().length === 0 ||
+    password.trim().length === 0 ||
+    (isCreateMode && confirmPassword.trim().length === 0);
 
-  function handleSubmit() {
-    // Placeholder auth flow until backend auth is wired.
-    router.back();
+  async function handleSubmit() {
+    const email = normalizeUsernameToEmail(username);
+    const pwd = password.trim();
+    const confirmPwd = confirmPassword.trim();
+
+    if (isCreateMode && pwd !== confirmPwd) {
+      Alert.alert('Unable to create account', 'Passwords do not match.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      if (isCreateMode) {
+        await createUserWithEmailAndPassword(auth, email, pwd);
+      } else {
+        await signInWithEmailAndPassword(auth, email, pwd);
+      }
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      Alert.alert(
+        isCreateMode ? 'Unable to create account' : 'Unable to log in',
+        error?.message ?? 'Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleToggleMode() {
+    setIsCreateMode((prev) => !prev);
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
   }
 
   return (
@@ -73,8 +113,23 @@ export default function ModalScreen() {
             style={styles.input}
           />
 
+          {isCreateMode ? (
+            <TextInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm password"
+              placeholderTextColor={PALETTE.mist}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+          ) : null}
+
           <Pressable
-            onPress={handleSubmit}
+            onPress={() => {
+              void handleSubmit();
+            }}
             disabled={isDisabled}
             style={({ pressed }) => [
               styles.submitButton,
@@ -85,7 +140,7 @@ export default function ModalScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setIsCreateMode((prev) => !prev)}
+            onPress={handleToggleMode}
             style={({ pressed }) => [styles.switchButton, pressed && { opacity: 0.8 }]}>
             <Text style={styles.switchText}>
               {isCreateMode ? 'Already have an account? Log in' : "Don't have an account? Create one"}

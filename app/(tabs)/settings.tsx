@@ -1,27 +1,82 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
+import { useFonts } from 'expo-font';
+import { deleteUser, onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { auth } from '@/constants/firebase';
 
 const PALETTE = {
   ink: '#0d0d1a',
   mist: '#8b9bb4',
+  silver: '#c8d4e8',
   pale: '#e8edf5',
   accent: '#7eb8d4',
   danger: '#ff6b6b',
 } as const;
 
 export default function SettingsScreen() {
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_300Light,
+  });
+  const serif = fontsLoaded ? 'CormorantGaramond_300Light' : 'serif';
+
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+    });
+  }, []);
+
+  async function handleSignOut() {
+    try {
+      await signOut(auth);
+    } catch (error: any) {
+      Alert.alert('Unable to sign out', error?.message ?? 'Please try again.');
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!user) return;
+    try {
+      await deleteUser(user);
+    } catch (error: any) {
+      Alert.alert('Unable to delete account', error?.message ?? 'Please log in again and retry.');
+    }
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <View style={styles.loginOnlyContainer}>
+          <Pressable
+            onPress={() => router.push('/modal')}
+            style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.9 }]}>
+            <Text style={styles.primaryText}>Log in</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Settings</Text>
 
         <View style={styles.section}>
           <Text style={styles.label}>Email address</Text>
-          <Text style={styles.value}>you@example.com</Text>
+          <Text style={styles.value}>{user.email ?? 'Signed in'}</Text>
         </View>
 
         <View style={styles.buttons}>
           <Pressable
+            onPress={() => {
+              void handleSignOut();
+            }}
             style={({ pressed }) => [
               styles.primaryButton,
               pressed && { opacity: 0.9 },
@@ -30,6 +85,9 @@ export default function SettingsScreen() {
           </Pressable>
 
           <Pressable
+            onPress={() => {
+              void handleDeleteAccount();
+            }}
             style={({ pressed }) => [
               styles.dangerButton,
               pressed && { opacity: 0.9 },
@@ -47,14 +105,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: PALETTE.ink,
   },
+  loginOnlyContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
   },
   title: {
-    fontSize: 22,
-    color: PALETTE.pale,
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: 4.2,
+    textAlign: 'left',
+    marginLeft: 8,
     marginBottom: 32,
   },
   section: {

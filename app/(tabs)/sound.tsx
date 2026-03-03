@@ -1,10 +1,12 @@
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import { auth } from '@/constants/firebase';
 import {
   getAvailableSounds,
   getCurrentSound,
@@ -29,6 +31,7 @@ export default function SoundScreen() {
 
   const [selected, setSelected] = useState<string>(getCurrentSound());
   const [sounds, setSounds] = useState<string[]>(getAvailableSounds());
+  const [user, setUser] = useState<User | null>(auth.currentUser);
   const previewRef = useRef<Audio.Sound | null>(null);
 
   const stopPreview = useCallback(async () => {
@@ -92,6 +95,12 @@ export default function SoundScreen() {
     };
   }, [stopPreview]);
 
+  useEffect(() => {
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+    });
+  }, []);
+
   async function handleSave() {
     await stopPreview();
     if (!selected) {
@@ -147,11 +156,13 @@ export default function SoundScreen() {
           })}
         </View>
 
-        <Pressable
-          onPress={() => router.push('/modal')}
-          style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
-          <Text style={styles.loginButtonText}>Log in for more sounds</Text>
-        </Pressable>
+        {!user ? (
+          <Pressable
+            onPress={() => router.push('/modal')}
+            style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
+            <Text style={styles.loginButtonText}>Log in for more sounds</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );
