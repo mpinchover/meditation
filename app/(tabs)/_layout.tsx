@@ -56,6 +56,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="sound-options"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="session"
         options={{
           href: null,

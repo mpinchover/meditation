@@ -82,7 +82,7 @@ export default function HomeScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => router.push('/(tabs)/sound')}
+                onPress={() => router.push('/(tabs)/sound-options')}
                 style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
                 <View style={styles.inputTextCol}>
                   <Text

@@ -9,17 +9,38 @@ export type MeditationTrack = {
 type SessionStateContextValue = {
   currentSound: string;
   setCurrentSound: React.Dispatch<React.SetStateAction<string>>;
+  currentEndingBell: string;
+  setCurrentEndingBell: React.Dispatch<React.SetStateAction<string>>;
   currentDurationMinutes: number;
   setCurrentDurationMinutes: React.Dispatch<React.SetStateAction<number>>;
   availableTracks: MeditationTrack[];
+  availableEndingBells: MeditationTrack[];
 };
 
 const DEFAULT_SOUND = 'Soft rain';
+const DEFAULT_ENDING_BELL = 'Zen bell';
 const DEFAULT_TRACKS: MeditationTrack[] = [
   {
     title: DEFAULT_SOUND,
     media_url: '',
     uuid: 'local-default',
+  },
+];
+const DEFAULT_ENDING_BELLS: MeditationTrack[] = [
+  {
+    title: DEFAULT_ENDING_BELL,
+    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
+    uuid: 'ending-bell-zen',
+  },
+  {
+    title: 'Temple chime',
+    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
+    uuid: 'ending-bell-temple',
+  },
+  {
+    title: 'Crystal bowl',
+    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
+    uuid: 'ending-bell-crystal',
   },
 ];
 
@@ -45,8 +66,10 @@ async function fetchTracksFromServer() {
 
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
   const [currentSound, setCurrentSound] = useState(DEFAULT_SOUND);
+  const [currentEndingBell, setCurrentEndingBell] = useState(DEFAULT_ENDING_BELL);
   const [currentDurationMinutes, setCurrentDurationMinutes] = useState(10);
   const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>(DEFAULT_TRACKS);
+  const [availableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,11 +99,20 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
     () => ({
       currentSound,
       setCurrentSound,
+      currentEndingBell,
+      setCurrentEndingBell,
       currentDurationMinutes,
       setCurrentDurationMinutes,
       availableTracks,
+      availableEndingBells,
     }),
-    [availableTracks, currentDurationMinutes, currentSound]
+    [
+      availableEndingBells,
+      availableTracks,
+      currentDurationMinutes,
+      currentEndingBell,
+      currentSound,
+    ]
   );
 
   return <SessionStateContext.Provider value={value}>{children}</SessionStateContext.Provider>;

@@ -2,7 +2,7 @@ import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamon
 import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
@@ -23,12 +23,26 @@ export default function SoundScreen() {
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
 
-  const { currentSound, setCurrentSound, availableTracks } = useSessionState();
+  const { mode, title } = useLocalSearchParams<{ mode?: string; title?: string }>();
+  const isEndingBellMode = mode === 'ending-bell';
+
+  const {
+    currentSound,
+    setCurrentSound,
+    availableTracks,
+    currentEndingBell,
+    setCurrentEndingBell,
+    availableEndingBells,
+  } = useSessionState();
+  const currentSelection = isEndingBellMode ? currentEndingBell : currentSound;
+  const setCurrentSelection = isEndingBellMode ? setCurrentEndingBell : setCurrentSound;
+  const sourceTracks = isEndingBellMode ? availableEndingBells : availableTracks;
+
   const sounds = useMemo(() => {
-    const titles = availableTracks.map((track) => track.title).filter(Boolean);
-    return titles.length > 0 ? titles : [currentSound];
-  }, [availableTracks, currentSound]);
-  const [selected, setSelected] = useState<string>(currentSound);
+    const titles = sourceTracks.map((track) => track.title).filter(Boolean);
+    return titles.length > 0 ? titles : [currentSelection];
+  }, [currentSelection, sourceTracks]);
+  const [selected, setSelected] = useState<string>(currentSelection);
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const previewRef = useRef<Audio.Sound | null>(null);
 
@@ -53,7 +67,7 @@ export default function SoundScreen() {
   const playPreview = useCallback(
     async (name: string) => {
       setSelected(name);
-      const mediaUrl = availableTracks.find((track) => track.title === name)?.media_url;
+      const mediaUrl = sourceTracks.find((track) => track.title === name)?.media_url;
       await stopPreview();
       if (!mediaUrl) return;
 
@@ -67,7 +81,7 @@ export default function SoundScreen() {
         // keep UI responsive even if preview fails
       }
     },
-    [availableTracks, stopPreview]
+    [sourceTracks, stopPreview]
   );
 
   useEffect(() => {
@@ -95,8 +109,8 @@ export default function SoundScreen() {
   }, []);
 
   useEffect(() => {
-    setSelected(currentSound);
-  }, [currentSound]);
+    setSelected(currentSelection);
+  }, [currentSelection]);
 
   async function handleSave() {
     await stopPreview();
@@ -104,8 +118,25 @@ export default function SoundScreen() {
       router.back();
       return;
     }
-    setCurrentSound(selected);
+    setCurrentSelection(selected);
     router.back();
+  }
+
+  const pickerTitle =
+    typeof title === 'string' && title.length > 0
+      ? title
+      : isEndingBellMode
+        ? 'Ending bell'
+        : 'Meditation';
+
+  function handleBack() {
+    void stopPreview().finally(() => {
+      if (mode === 'meditation' || mode === 'ending-bell') {
+        router.replace('/(tabs)/sound-options');
+        return;
+      }
+      router.back();
+    });
   }
 
   return (
@@ -113,11 +144,7 @@ export default function SoundScreen() {
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => {
-              void stopPreview().finally(() => {
-                router.back();
-              });
-            }}
+            onPress={handleBack}
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
@@ -128,7 +155,9 @@ export default function SoundScreen() {
           </Pressable>
         </View>
 
-        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Sound</Text>
+        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>
+          {pickerTitle}
+        </Text>
 
         <View style={styles.list}>
           {sounds.map((name) => {
@@ -153,7 +182,7 @@ export default function SoundScreen() {
           })}
         </View>
 
-        {!user ? (
+        {!isEndingBellMode && !user ? (
           <View style={styles.loginGate}>
             <Text style={styles.loginPromptText}>Need more tracks?</Text>
             <Pressable
