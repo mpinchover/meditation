@@ -6,6 +6,7 @@ import {
   Jost_200ExtraLight,
   Jost_400Regular,
 } from '@expo-google-fonts/jost';
+import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
@@ -98,13 +99,13 @@ export default function HomeScreen() {
                   </Text>
                   <View style={styles.soundSummary}>
                     <View style={styles.soundSummaryRow}>
-                    
+                      <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
                       <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
                         {sound}
                       </Text>
                     </View>
                     <View style={styles.soundSummaryRow}>
-                     
+                      <Feather name="bell" size={14} color={PALETTE.mist} />
                       <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
                         {endingBell || 'None'}
                       </Text>

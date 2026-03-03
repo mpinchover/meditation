@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
@@ -27,6 +27,7 @@ const PALETTE = {
 } as const;
 
 export default function ModalScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -75,6 +76,14 @@ export default function ModalScreen() {
     setConfirmPassword('');
   }
 
+  function handleClose() {
+    if (from === 'account') {
+      router.replace('/(tabs)');
+      return;
+    }
+    router.back();
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -82,7 +91,7 @@ export default function ModalScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.container}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleClose}
             hitSlop={10}
             style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.75 }]}>
             <Ionicons name="close" size={24} color={PALETTE.pale} />

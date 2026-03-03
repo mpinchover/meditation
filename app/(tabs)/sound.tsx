@@ -1,12 +1,10 @@
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
-import { onAuthStateChanged, type User } from 'firebase/auth';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { auth } from '@/constants/firebase';
 import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
@@ -44,7 +42,6 @@ export default function SoundScreen() {
     return currentSelection ? [currentSelection] : [];
   }, [currentSelection, sourceTracks]);
   const [selected, setSelected] = useState<string>(currentSelection);
-  const [user, setUser] = useState<User | null>(auth.currentUser);
   const [playingName, setPlayingName] = useState<string | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
   const soundCacheRef = useRef<Map<string, Audio.Sound>>(new Map());
@@ -173,12 +170,6 @@ export default function SoundScreen() {
   }, [unloadAllPreviews]);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
-    });
-  }, []);
-
-  useEffect(() => {
     setSelected(currentSelection);
   }, [currentSelection]);
 
@@ -297,18 +288,6 @@ export default function SoundScreen() {
           })}
         </View>
 
-        {!user ? (
-          <View style={styles.loginGateAnchor}>
-            <View style={styles.loginGate}>
-              <Text style={styles.loginPromptText}>Log in for more sounds</Text>
-              <Pressable
-                onPress={() => router.push('/modal')}
-                style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
-                <Text style={styles.loginButtonText}>Log in</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -346,50 +325,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 14,
-    color: PALETTE.mist,
-    marginBottom: 18,
-  },
-
   list: {
     gap: 10,
-  },
-  loginGateAnchor: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    bottom: 50,
-  },
-  loginGate: {
-    justifyContent: 'flex-end',
-  },
-  loginPromptText: {
-    textAlign: 'center',
-    fontSize: 18,
-    color: PALETTE.pale,
-    marginBottom: 12,
-  },
-  loginButton: {
-    width: '100%',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(126,184,212,0.35)',
-    backgroundColor: 'rgba(126,184,212,0.13)',
-  },
-  loginButtonText: {
-    textAlign: 'center',
-    fontSize: 15,
-    color: PALETTE.pale,
-    fontWeight: '600',
-  },
-  loginButtonSubtext: {
-    marginTop: 4,
-    textAlign: 'center',
-    fontSize: 13,
-    color: PALETTE.mist,
   },
   row: {
     paddingVertical: 14,
@@ -408,10 +345,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-  },
-  previewText: {
-    fontSize: 13,
-    color: PALETTE.mist,
   },
   rowActive: {
     borderColor: PALETTE.accent,

@@ -1,9 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { useFonts } from 'expo-font';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+
+import { auth } from '@/constants/firebase';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -18,6 +21,13 @@ export default function SoundOptionsScreen() {
     CormorantGaramond_300Light,
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+    });
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -61,6 +71,19 @@ export default function SoundOptionsScreen() {
             </View>
           </Pressable>
         </View>
+
+        {!user ? (
+          <View style={styles.loginGateAnchor}>
+            <View style={styles.loginGate}>
+              <Text style={styles.loginPromptText}>Log in for more sounds</Text>
+              <Pressable
+                onPress={() => router.push('/modal')}
+                style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.loginButtonText}>Log in</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -100,6 +123,36 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
+  },
+  loginGateAnchor: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 50,
+  },
+  loginGate: {
+    justifyContent: 'flex-end',
+  },
+  loginPromptText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: PALETTE.pale,
+    marginBottom: 12,
+  },
+  loginButton: {
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(126,184,212,0.35)',
+    backgroundColor: 'rgba(126,184,212,0.13)',
+  },
+  loginButtonText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: PALETTE.pale,
+    fontWeight: '600',
   },
   row: {
     paddingVertical: 14,

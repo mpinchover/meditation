@@ -34,6 +34,7 @@ export default function AccountScreen() {
   async function handleSignOut() {
     try {
       await signOut(auth);
+      router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Unable to sign out', error?.message ?? 'Please try again.');
     }
