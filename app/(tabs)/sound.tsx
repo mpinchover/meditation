@@ -117,6 +117,8 @@ export default function SoundScreen() {
 
      
 
+       
+
         <View style={styles.list}>
           {sounds.map((name) => {
             const active = selected === name;
@@ -131,11 +133,20 @@ export default function SoundScreen() {
                 onPress={() => {
                   void playPreview(name);
                 }}>
-                <Text style={[styles.rowText, active && styles.rowTextActive]}>{name}</Text>
+                <View style={styles.rowInner}>
+                  <Text style={[styles.rowText, active && styles.rowTextActive]}>{name}</Text>
+                
+                </View>
               </Pressable>
             );
           })}
         </View>
+
+        <Pressable
+          onPress={() => router.push('/modal')}
+          style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
+          <Text style={styles.loginButtonText}>Log in for more sounds</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -175,8 +186,31 @@ const styles = StyleSheet.create({
     color: PALETTE.mist,
     marginBottom: 18,
   },
+
   list: {
     gap: 10,
+  },
+  loginButton: {
+    marginTop: 24,
+    alignSelf: 'stretch',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(126,184,212,0.35)',
+    backgroundColor: 'rgba(126,184,212,0.13)',
+  },
+  loginButtonText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: PALETTE.pale,
+    fontWeight: '600',
+  },
+  loginButtonSubtext: {
+    marginTop: 4,
+    textAlign: 'center',
+    fontSize: 13,
+    color: PALETTE.mist,
   },
   row: {
     paddingVertical: 14,
@@ -189,6 +223,16 @@ const styles = StyleSheet.create({
   rowText: {
     fontSize: 15,
     color: PALETTE.pale,
+  },
+  rowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  previewText: {
+    fontSize: 13,
+    color: PALETTE.mist,
   },
   rowActive: {
     borderColor: PALETTE.accent,
