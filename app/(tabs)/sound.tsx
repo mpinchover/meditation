@@ -183,9 +183,9 @@ export default function SoundScreen() {
           })}
         </View>
 
-        {!isEndingBellMode && !user ? (
+        { !user ? (
           <View style={styles.loginGate}>
-            <Text style={styles.loginPromptText}>Need more tracks?</Text>
+            <Text style={styles.loginPromptText}>Log in for more sounds</Text>
             <Pressable
               onPress={() => router.push('/modal')}
               style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
