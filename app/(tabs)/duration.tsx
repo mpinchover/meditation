@@ -80,7 +80,7 @@ export default function DurationScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.subtitle}>How long would you like to meditate?</Text>
+      
 
         <View style={styles.pickerContainer}>
           <DateTimePicker
@@ -134,11 +134,8 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   pickerContainer: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,212,232,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    paddingVertical: 8,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   summaryRow: {
