@@ -1,7 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -72,6 +76,21 @@ export default function ModalScreen() {
     setConfirmPassword('');
   }
 
+  async function handleForgotPassword() {
+    if (username.trim().length === 0) {
+      Alert.alert('Forgot password', 'Enter your username or email first.');
+      return;
+    }
+
+    const email = normalizeUsernameToEmail(username);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Reset email sent', `Password reset instructions were sent to ${email}.`);
+    } catch (error: any) {
+      Alert.alert('Unable to send reset email', error?.message ?? 'Please try again.');
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -124,6 +143,16 @@ export default function ModalScreen() {
               autoCorrect={false}
               style={styles.input}
             />
+          ) : null}
+
+          {!isCreateMode ? (
+            <Pressable
+              onPress={() => {
+                void handleForgotPassword();
+              }}
+              style={({ pressed }) => [styles.forgotButton, pressed && { opacity: 0.8 }]}>
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </Pressable>
           ) : null}
 
           <Pressable
@@ -196,6 +225,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,212,232,0.2)',
     backgroundColor: 'rgba(255,255,255,0.04)',
     color: PALETTE.pale,
+  },
+  forgotButton: {
+    alignSelf: 'center',
+    marginTop: -2,
+    marginBottom: 10,
+    paddingVertical: 4,    
+  },
+  forgotText: {
+    fontSize: 13,
+    color: PALETTE.accent,
   },
   submitButton: {
     marginTop: 4,

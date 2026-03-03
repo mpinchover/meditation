@@ -57,51 +57,32 @@ export function subscribeToSessionChanges(listener: Listener) {
 }
 
 async function fetchTracksFromServer() {
-  const baseUrls = [
-    'http://localhost:5000',
-    'http://127.0.0.1:5000',
-    'http://10.0.2.2:5000',
-  ];
 
-  for (const baseUrl of baseUrls) {
-    try {
-      const response = await fetch(`${baseUrl}/tracks`);
-      if (!response.ok) continue;
+  try {
+    const response = await fetch(`${'http://127.0.0.1:5000'}/tracks`);
+    if (!response.ok) throw new Error('Failed to fetch tracks');
 
-      const payload = await response.json();
-      const tracks = Array.isArray(payload)
-        ? payload
-            .map((track) => {
-              const title = typeof track?.title === 'string' ? track.title.trim() : '';
-              const mediaUrl = typeof track?.media_url === 'string' ? track.media_url.trim() : '';
-              const uuid =
-                typeof track?.uuid === 'string' && track.uuid.trim()
-                  ? track.uuid.trim()
-                  : title;
-
-              if (!title || !mediaUrl) return null;
-
-              return {
-                title,
-                media_url: mediaUrl,
-                uuid,
-              };
-            })
-            .filter((track): track is MeditationTrack => track !== null)
-        : [];
-
-      if (tracks.length > 0) {
-        availableTracks = tracks;
-        if (!availableTracks.some((track) => track.title === currentSound)) {
-          currentSound = availableTracks[0].title;
-        }
-        notifyListeners();
-        return;
+    const payload = await response.json();
+    const tracks = payload.map((track: any) => {
+      return {
+        title: track.title,
+        media_url: track.media_url,
+        uuid: track.uuid,
+      };
+    });
+    
+    if (tracks.length > 0) {
+      availableTracks = tracks;
+      if (!availableTracks.some((track) => track.title === currentSound)) {
+        currentSound = availableTracks[0].title;
       }
-    } catch {
-      // try next URL
+      notifyListeners();
+      return;
     }
+  } catch {
+    // try next URL
   }
+ 
 }
 
 export async function loadAvailableSoundsOnAppStart() {
