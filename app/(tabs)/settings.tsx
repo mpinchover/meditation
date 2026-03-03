@@ -51,12 +51,15 @@ export default function SettingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <View style={styles.loginOnlyContainer}>
-          <Pressable
-            onPress={() => router.push('/modal')}
-            style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.9 }]}>
-            <Text style={styles.primaryText}>Log in</Text>
-          </Pressable>
+        <View style={styles.container}>
+          <Text style={[styles.title, { fontFamily: serif, color: PALETTE.silver }]}>Settings</Text>
+          <View style={styles.loginOnlyContainer}>
+            <Pressable
+              onPress={() => router.push('/modal')}
+              style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.9 }]}>
+              <Text style={styles.primaryText}>Log in</Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -107,8 +110,8 @@ const styles = StyleSheet.create({
   },
   loginOnlyContainer: {
     flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 32,
   },
   container: {
     flex: 1,

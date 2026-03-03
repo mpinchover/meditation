@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import * as FirebaseAuth from 'firebase/auth';
 import { Platform } from 'react-native';
 
 const firebaseConfig = {
@@ -13,7 +14,26 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-const auth = getAuth(app);
+const auth =
+  Platform.OS === 'web'
+    ? FirebaseAuth.getAuth(app)
+    : (() => {
+        try {
+          // `getReactNativePersistence` exists at runtime in React Native builds.
+          const getRN = (FirebaseAuth as any).getReactNativePersistence as
+            | ((storage: typeof AsyncStorage) => unknown)
+            | undefined;
+          if (getRN) {
+            return FirebaseAuth.initializeAuth(app, {
+              persistence: getRN(AsyncStorage) as any,
+            });
+          }
+          return FirebaseAuth.getAuth(app);
+        } catch {
+          // initializeAuth can throw on fast refresh if already initialized.
+          return FirebaseAuth.getAuth(app);
+        }
+      })();
 
 if (__DEV__) {
   const configuredHost = process.env.EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST?.trim();
@@ -22,7 +42,7 @@ if (__DEV__) {
   const emulatorUrl = host.startsWith('http') ? host : `http://${host}`;
 
   try {
-    connectAuthEmulator(auth, emulatorUrl, { disableWarnings: true });
+    FirebaseAuth.connectAuthEmulator(auth, emulatorUrl, { disableWarnings: true });
   } catch {
     // ignore duplicate connect calls during fast refresh
   }
