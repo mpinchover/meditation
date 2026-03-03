@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import {
@@ -76,21 +75,6 @@ export default function ModalScreen() {
     setConfirmPassword('');
   }
 
-  async function handleForgotPassword() {
-    if (username.trim().length === 0) {
-      Alert.alert('Forgot password', 'Enter your username or email first.');
-      return;
-    }
-
-    const email = normalizeUsernameToEmail(username);
-    try {
-      await sendPasswordResetEmail(auth, email);
-      Alert.alert('Reset email sent', `Password reset instructions were sent to ${email}.`);
-    } catch (error: any) {
-      Alert.alert('Unable to send reset email', error?.message ?? 'Please try again.');
-    }
-  }
-
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -105,11 +89,7 @@ export default function ModalScreen() {
           </Pressable>
 
           <Text style={styles.title}>{isCreateMode ? 'Create account' : 'Log in'}</Text>
-          <Text style={styles.subtitle}>
-            {isCreateMode
-              ? 'Create an account to unlock more sounds.'
-              : 'Log in to access additional sound tracks.'}
-          </Text>
+         
 
           <TextInput
             value={username}
@@ -147,9 +127,7 @@ export default function ModalScreen() {
 
           {!isCreateMode ? (
             <Pressable
-              onPress={() => {
-                void handleForgotPassword();
-              }}
+              onPress={() => router.push('/forgot-password' as never)}
               style={({ pressed }) => [styles.forgotButton, pressed && { opacity: 0.8 }]}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </Pressable>
@@ -207,6 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: PALETTE.pale,
+    marginBottom: 20,
   },
   subtitle: {
     marginTop: 8,
