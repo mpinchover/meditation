@@ -19,9 +19,10 @@ const isIOS = Platform.OS === 'ios';
 
 function minutesToPickerDate(totalMinutes: number) {
   const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
-  const d = new Date();
-  d.setHours(Math.floor(clamped / 60), clamped % 60, 0, 0);
-  return d;
+  // iOS countdown interprets Date as wall-clock time; offset by timezone so
+  // a logical duration like 10m displays as 0h 10m consistently.
+  const timezoneOffsetMs = new Date().getTimezoneOffset() * 60_000;
+  return new Date(clamped * 60_000 + timezoneOffsetMs);
 }
 
 export default function DurationScreen() {
@@ -33,12 +34,14 @@ export default function DurationScreen() {
   const { currentDurationMinutes, setCurrentDurationMinutes } = useSessionState();
   const initialTotalMinutes = currentDurationMinutes;
   const [totalMinutes, setTotalMinutes] = useState<number>(Math.max(0, initialTotalMinutes));
+  const [pickerResetKey, setPickerResetKey] = useState(0);
   const pickerDate = useMemo(() => minutesToPickerDate(totalMinutes), [totalMinutes]);
 
   useFocusEffect(
     useCallback(() => {
       const syncedMinutes = Math.max(0, currentDurationMinutes);
       setTotalMinutes(syncedMinutes);
+      setPickerResetKey((prev) => prev + 1);
     }, [currentDurationMinutes])
   );
 
@@ -71,8 +74,8 @@ export default function DurationScreen() {
     }
 
     if (!date) return;
-    const mins = date.getHours() * 60 + date.getMinutes();
-    const minsClamped = Math.max(0, Math.min(23 * 60 + 59, mins));
+    const minsRaw = date.getHours() * 60 + date.getMinutes();
+    const minsClamped = Math.max(0, Math.min(23 * 60 + 59, minsRaw));
     setTotalMinutes(minsClamped);
   }
 
@@ -97,6 +100,7 @@ export default function DurationScreen() {
 
         <View style={styles.pickerContainer}>
           <DateTimePicker
+            key={pickerResetKey}
             mode={isIOS ? 'countdown' : 'countdown'}
             value={pickerDate}
             display={isIOS ? 'spinner' : 'default'}
