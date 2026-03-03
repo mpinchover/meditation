@@ -157,11 +157,14 @@ export default function SoundScreen() {
         </View>
 
         {!user ? (
-          <Pressable
-            onPress={() => router.push('/modal')}
-            style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.loginButtonText}>Log in for more sounds</Text>
-          </Pressable>
+          <View style={styles.loginGate}>
+            <Text style={styles.loginPromptText}>Need more tracks?</Text>
+            <Pressable
+              onPress={() => router.push('/modal')}
+              style={({ pressed }) => [styles.loginButton, pressed && { opacity: 0.85 }]}>
+              <Text style={styles.loginButtonText}>Log in</Text>
+            </Pressable>
+          </View>
         ) : null}
       </View>
     </SafeAreaView>
@@ -209,9 +212,18 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
   },
+  loginGate: {
+    height: '50%',
+    justifyContent: 'center',
+  },
+  loginPromptText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: PALETTE.pale,
+    marginBottom: 12,
+  },
   loginButton: {
-    marginTop: 24,
-    alignSelf: 'stretch',
+    width: '100%',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
