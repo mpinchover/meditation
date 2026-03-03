@@ -4,6 +4,7 @@ export type MeditationTrack = {
   title: string;
   media_url: string;
   uuid: string;
+  media_type: string;
 };
 
 type SessionStateContextValue = {
@@ -18,31 +19,16 @@ type SessionStateContextValue = {
 };
 
 const DEFAULT_SOUND = 'Soft rain';
-const DEFAULT_ENDING_BELL = 'Zen bell';
+const DEFAULT_ENDING_BELL = '';
 const DEFAULT_TRACKS: MeditationTrack[] = [
   {
     title: DEFAULT_SOUND,
     media_url: '',
     uuid: 'local-default',
+    media_type: 'SOUNDSCAPE',
   },
 ];
-const DEFAULT_ENDING_BELLS: MeditationTrack[] = [
-  {
-    title: DEFAULT_ENDING_BELL,
-    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
-    uuid: 'ending-bell-zen',
-  },
-  {
-    title: 'Temple chime',
-    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
-    uuid: 'ending-bell-temple',
-  },
-  {
-    title: 'Crystal bowl',
-    media_url: 'https://storage.googleapis.com/callysto-public/tracks/track.m4a',
-    uuid: 'ending-bell-crystal',
-  },
-];
+const DEFAULT_ENDING_BELLS: MeditationTrack[] = [];
 
 const SessionStateContext = createContext<SessionStateContextValue | null>(null);
 
@@ -59,9 +45,10 @@ async function fetchTracksFromServer() {
     .map((track: any) => ({
       title: String(track?.title ?? ''),
       media_url: String(track?.media_url ?? ''),
-      uuid: String(track?.uuid ?? ''),
+      uuid: String(track?.uuid ?? track?.title ?? ''),
+      media_type: String(track?.media_type ?? '').toUpperCase(),
     }))
-    .filter((track) => track.title.length > 0);
+    .filter((track) => track.title.length > 0 && track.media_url.length > 0);
 }
 
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
@@ -69,7 +56,7 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
   const [currentEndingBell, setCurrentEndingBell] = useState(DEFAULT_ENDING_BELL);
   const [currentDurationMinutes, setCurrentDurationMinutes] = useState(10);
   const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>(DEFAULT_TRACKS);
-  const [availableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
+  const [availableEndingBells, setAvailableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
 
   useEffect(() => {
     let isMounted = true;
@@ -79,11 +66,25 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
         const tracks = await fetchTracksFromServer();
         if (!isMounted || tracks.length === 0) return;
 
-        setAvailableTracks(tracks);
+        const soundscapes = tracks.filter((track) => track.media_type === 'SOUNDSCAPE');
+        const endingBells = tracks.filter((track) => track.media_type === 'BELL');
+
+        if (soundscapes.length > 0) {
+          setAvailableTracks(soundscapes);
+        }
+        if (endingBells.length > 0) {
+          setAvailableEndingBells(endingBells);
+        }
+
         setCurrentSound((previousSound) => {
-          return tracks.some((track) => track.title === previousSound)
+          return soundscapes.some((track) => track.title === previousSound)
             ? previousSound
-            : tracks[0].title;
+            : (soundscapes[0]?.title ?? previousSound);
+        });
+        setCurrentEndingBell((previousBell) => {
+          return endingBells.some((track) => track.title === previousBell)
+            ? previousBell
+            : (endingBells[0]?.title ?? previousBell);
         });
       } catch {
         // Keep local defaults when backend is unavailable.

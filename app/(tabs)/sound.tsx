@@ -40,7 +40,8 @@ export default function SoundScreen() {
 
   const sounds = useMemo(() => {
     const titles = sourceTracks.map((track) => track.title).filter(Boolean);
-    return titles.length > 0 ? titles : [currentSelection];
+    if (titles.length > 0) return titles;
+    return currentSelection ? [currentSelection] : [];
   }, [currentSelection, sourceTracks]);
   const [selected, setSelected] = useState<string>(currentSelection);
   const [user, setUser] = useState<User | null>(auth.currentUser);

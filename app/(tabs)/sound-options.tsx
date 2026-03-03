@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
@@ -40,7 +41,10 @@ export default function SoundOptionsScreen() {
               })
             }
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
-            <Text style={styles.rowText}>Meditation</Text>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowText}>Meditation</Text>
+              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+            </View>
           </Pressable>
 
           <Pressable
@@ -51,7 +55,10 @@ export default function SoundOptionsScreen() {
               })
             }
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
-            <Text style={styles.rowText}>Ending bell</Text>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowText}>Ending bell</Text>
+              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+            </View>
           </Pressable>
         </View>
       </View>
@@ -101,6 +108,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,212,232,0.15)',
     backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  rowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   rowText: {
     fontSize: 15,
