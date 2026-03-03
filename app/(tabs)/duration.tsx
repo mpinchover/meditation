@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { getCurrentDurationMinutes, setCurrentDurationMinutes } from '@/constants/session';
+import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -23,7 +23,8 @@ export default function DurationScreen() {
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
 
-  const initialTotalMinutes = getCurrentDurationMinutes();
+  const { currentDurationMinutes, setCurrentDurationMinutes } = useSessionState();
+  const initialTotalMinutes = currentDurationMinutes;
   const [totalMinutes, setTotalMinutes] = useState<number>(Math.max(0, initialTotalMinutes));
 
   const initialDate = useMemo(() => {

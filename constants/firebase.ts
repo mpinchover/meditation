@@ -35,18 +35,18 @@ const auth =
         }
       })();
 
-if (__DEV__) {
-  const configuredHost = process.env.EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST?.trim();
-  const defaultHost = Platform.OS === 'android' ? '10.0.2.2:9099' : '127.0.0.1:9099';
-  const host = configuredHost && configuredHost.length > 0 ? configuredHost : defaultHost;
-  const emulatorUrl = host.startsWith('http') ? host : `http://${host}`;
+// if (__DEV__) {
+//   const configuredHost = process.env.EXPO_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST?.trim();
+//   const defaultHost = Platform.OS === 'android' ? '10.0.2.2:9099' : '127.0.0.1:9099';
+//   const host = configuredHost && configuredHost.length > 0 ? configuredHost : defaultHost;
+//   const emulatorUrl = host.startsWith('http') ? host : `http://${host}`;
 
-  try {
-    FirebaseAuth.connectAuthEmulator(auth, emulatorUrl, { disableWarnings: true });
-  } catch {
-    // ignore duplicate connect calls during fast refresh
-  }
-}
+//   try {
+//     FirebaseAuth.connectAuthEmulator(auth, emulatorUrl, { disableWarnings: true });
+//   } catch {
+//     // ignore duplicate connect calls during fast refresh
+//   }
+// }
 
 function normalizeUsernameToEmail(username: string) {
   const value = username.trim().toLowerCase();

@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Audio } from 'expo-av';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { getCurrentDurationMinutes, getCurrentSound, getTrackMediaUrlByTitle } from '@/constants/session';
+import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -26,7 +26,12 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function SessionScreen() {
-  const initialSecondsRef = useRef(getCurrentDurationMinutes() * 60);
+  const { currentDurationMinutes, currentSound, availableTracks } = useSessionState();
+  const selectedTrackUrl = useMemo(() => {
+    return availableTracks.find((track) => track.title === currentSound)?.media_url;
+  }, [availableTracks, currentSound]);
+
+  const initialSecondsRef = useRef(currentDurationMinutes * 60);
   const [remaining, setRemaining] = useState(initialSecondsRef.current);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -70,25 +75,23 @@ export default function SessionScreen() {
       }
     }
 
-    const selectedSound = getCurrentSound();
-    const mediaUrl = getTrackMediaUrlByTitle(selectedSound);
-    if (!mediaUrl) return;
+    if (!selectedTrackUrl) return;
 
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
       const { sound } = await Audio.Sound.createAsync(
-        { uri: mediaUrl },
+        { uri: selectedTrackUrl },
         { shouldPlay: true, isLooping: true }
       );
       meditationAudioRef.current = sound;
     } catch {
       // keep session timer running even if audio fails
     }
-  }, [stopMeditationAudio]);
+  }, [selectedTrackUrl, stopMeditationAudio]);
 
   useFocusEffect(
     useCallback(() => {
-      const minutes = getCurrentDurationMinutes();
+      const minutes = currentDurationMinutes;
       initialSecondsRef.current = minutes * 60;
 
       if (initialSecondsRef.current <= 0) {
@@ -130,7 +133,7 @@ export default function SessionScreen() {
         }
         void stopMeditationAudio();
       };
-    }, [startMeditationAudio, stopMeditationAudio])
+    }, [currentDurationMinutes, startMeditationAudio, stopMeditationAudio])
   );
 
   const showFinish = isPaused && remaining > 0;

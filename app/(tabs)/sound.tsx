@@ -3,17 +3,11 @@ import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { auth } from '@/constants/firebase';
-import {
-  getAvailableSounds,
-  getCurrentSound,
-  getTrackMediaUrlByTitle,
-  setCurrentSound,
-  subscribeToSessionChanges,
-} from '@/constants/session';
+import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -29,8 +23,12 @@ export default function SoundScreen() {
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
 
-  const [selected, setSelected] = useState<string>(getCurrentSound());
-  const [sounds, setSounds] = useState<string[]>(getAvailableSounds());
+  const { currentSound, setCurrentSound, availableTracks } = useSessionState();
+  const sounds = useMemo(() => {
+    const titles = availableTracks.map((track) => track.title).filter(Boolean);
+    return titles.length > 0 ? titles : [currentSound];
+  }, [availableTracks, currentSound]);
+  const [selected, setSelected] = useState<string>(currentSound);
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const previewRef = useRef<Audio.Sound | null>(null);
 
@@ -55,7 +53,7 @@ export default function SoundScreen() {
   const playPreview = useCallback(
     async (name: string) => {
       setSelected(name);
-      const mediaUrl = getTrackMediaUrlByTitle(name);
+      const mediaUrl = availableTracks.find((track) => track.title === name)?.media_url;
       await stopPreview();
       if (!mediaUrl) return;
 
@@ -69,16 +67,11 @@ export default function SoundScreen() {
         // keep UI responsive even if preview fails
       }
     },
-    [stopPreview]
+    [availableTracks, stopPreview]
   );
 
   useEffect(() => {
     void Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
-    return subscribeToSessionChanges(() => {
-      setSounds(getAvailableSounds());
-      setSelected(getCurrentSound());
-    });
   }, []);
 
   useFocusEffect(
@@ -100,6 +93,10 @@ export default function SoundScreen() {
       setUser(nextUser);
     });
   }, []);
+
+  useEffect(() => {
+    setSelected(currentSound);
+  }, [currentSound]);
 
   async function handleSave() {
     await stopPreview();

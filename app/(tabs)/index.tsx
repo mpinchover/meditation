@@ -8,12 +8,12 @@ import {
 } from '@expo-google-fonts/jost';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
-import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { router } from 'expo-router';
+import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getCurrentDurationMinutes, getCurrentSound } from '@/constants/session';
+import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -27,8 +27,7 @@ const PALETTE = {
 
 
 export default function HomeScreen() {
-  const [sound, setSound] = useState<string>(getCurrentSound());
-  const [durationMinutes, setDurationMinutes] = useState<number>(getCurrentDurationMinutes());
+  const { currentSound: sound, currentDurationMinutes: durationMinutes } = useSessionState();
 
   const [fontsLoaded] = useFonts({
     Jost_200ExtraLight,
@@ -40,13 +39,6 @@ export default function HomeScreen() {
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
   const sansThin = fontsLoaded ? 'Jost_200ExtraLight' : Platform.select({ default: 'System' });
   const sansRegular = fontsLoaded ? 'Jost_400Regular' : Platform.select({ default: 'System' });
-
-  useFocusEffect(
-    useCallback(() => {
-      setSound(getCurrentSound());
-      setDurationMinutes(getCurrentDurationMinutes());
-    }, [])
-  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
