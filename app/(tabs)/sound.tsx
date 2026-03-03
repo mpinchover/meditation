@@ -15,6 +15,8 @@ const PALETTE = {
   accent: '#7eb8d4',
 } as const;
 
+const sharedSoundCache = new Map<string, Audio.Sound>();
+
 export default function SoundScreen() {
   const [fontsLoaded] = useFonts({
     CormorantGaramond_300Light,
@@ -44,7 +46,6 @@ export default function SoundScreen() {
   const [selected, setSelected] = useState<string>(currentSelection);
   const [playingName, setPlayingName] = useState<string | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
-  const soundCacheRef = useRef<Map<string, Audio.Sound>>(new Map());
   const playingPulse = useRef(new Animated.Value(0)).current;
 
   const stopPreview = useCallback(async () => {
@@ -66,25 +67,12 @@ export default function SoundScreen() {
     setPlayingName(null);
   }, []);
 
-  const unloadAllPreviews = useCallback(async () => {
-    await stopPreview();
-    const cachedSounds = Array.from(soundCacheRef.current.values());
-    for (const sound of cachedSounds) {
-      try {
-        await sound.unloadAsync();
-      } catch {
-        // ignore unload errors during teardown
-      }
-    }
-    soundCacheRef.current.clear();
-  }, [stopPreview]);
-
   const playPreview = useCallback(
     async (name: string) => {
       setSelected(name);
       await stopPreview();
 
-      const cached = soundCacheRef.current.get(name);
+      const cached = sharedSoundCache.get(name);
       if (cached) {
         previewRef.current = cached;
         try {
@@ -105,7 +93,7 @@ export default function SoundScreen() {
           { uri: mediaUrl },
           { shouldPlay: false, isLooping: true }
         );
-        soundCacheRef.current.set(name, sound);
+        sharedSoundCache.set(name, sound);
         previewRef.current = sound;
         await sound.playFromPositionAsync(0);
         setPlayingName(name);
@@ -121,28 +109,30 @@ export default function SoundScreen() {
     let isCancelled = false;
 
     const preload = async () => {
-      for (const track of sourceTracks) {
-        if (isCancelled) return;
-        if (!track.media_url || soundCacheRef.current.has(track.title)) continue;
+      await Promise.all(
+        sourceTracks.map(async (track) => {
+          if (isCancelled) return;
+          if (!track.media_url || sharedSoundCache.has(track.title)) return;
 
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: track.media_url },
-            { shouldPlay: false, isLooping: true }
-          );
-          if (isCancelled) {
-            try {
-              await sound.unloadAsync();
-            } catch {
-              // ignore unload errors during cancellation
+          try {
+            const { sound } = await Audio.Sound.createAsync(
+              { uri: track.media_url },
+              { shouldPlay: false, isLooping: true }
+            );
+            if (isCancelled) {
+              try {
+                await sound.unloadAsync();
+              } catch {
+                // ignore unload errors during cancellation
+              }
+              return;
             }
-            return;
+            sharedSoundCache.set(track.title, sound);
+          } catch {
+            // keep preloading best-effort
           }
-          soundCacheRef.current.set(track.title, sound);
-        } catch {
-          // keep preloading best-effort
-        }
-      }
+        })
+      );
     };
 
     void preload();
@@ -158,16 +148,16 @@ export default function SoundScreen() {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        void unloadAllPreviews();
+        void stopPreview();
       };
-    }, [unloadAllPreviews])
+    }, [stopPreview])
   );
 
   useEffect(() => {
     return () => {
-      void unloadAllPreviews();
+      void stopPreview();
     };
-  }, [unloadAllPreviews]);
+  }, [stopPreview]);
 
   useEffect(() => {
     setSelected(currentSelection);
