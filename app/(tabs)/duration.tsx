@@ -1,4 +1,6 @@
+import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +10,7 @@ import { getCurrentDurationMinutes, setCurrentDurationMinutes } from '@/constant
 const PALETTE = {
   ink: '#0d0d1a',
   mist: '#8b9bb4',
+  silver: '#c8d4e8',
   pale: '#e8edf5',
   accent: '#7eb8d4',
 } as const;
@@ -15,6 +18,11 @@ const PALETTE = {
 const isIOS = Platform.OS === 'ios';
 
 export default function DurationScreen() {
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_300Light,
+  });
+  const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
+
   const initialTotalMinutes = getCurrentDurationMinutes();
   const [totalMinutes, setTotalMinutes] = useState<number>(Math.max(0, initialTotalMinutes));
 
@@ -79,7 +87,7 @@ export default function DurationScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.screenTitle}>Duration</Text>
+        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Duration</Text>
 
         <View style={styles.pickerContainer}>
           <DateTimePicker
@@ -123,9 +131,9 @@ const styles = StyleSheet.create({
     color: PALETTE.mist,
   },
   screenTitle: {
-    fontSize: 42,
-    color: PALETTE.pale,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: 4.2,
     textAlign: 'left',
     marginLeft: 8,
     marginBottom: 16,

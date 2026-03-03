@@ -1,4 +1,6 @@
+import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { Audio } from 'expo-av';
+import { useFonts } from 'expo-font';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
@@ -14,11 +16,17 @@ import {
 const PALETTE = {
   ink: '#0d0d1a',
   mist: '#8b9bb4',
+  silver: '#c8d4e8',
   pale: '#e8edf5',
   accent: '#7eb8d4',
 } as const;
 
 export default function SoundScreen() {
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_300Light,
+  });
+  const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
+
   const [selected, setSelected] = useState<string>(getCurrentSound());
   const [sounds, setSounds] = useState<string[]>(getAvailableSounds());
   const previewRef = useRef<Audio.Sound | null>(null);
@@ -114,7 +122,7 @@ export default function SoundScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.screenTitle}>Sound</Text>
+        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Sound</Text>
 
         <View style={styles.list}>
           {sounds.map((name) => {
@@ -174,9 +182,9 @@ const styles = StyleSheet.create({
     color: PALETTE.mist,
   },
   screenTitle: {
-    fontSize: 42,
-    color: PALETTE.pale,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: 4.2,
     textAlign: 'left',
     marginLeft: 8,
     marginBottom: 16,
