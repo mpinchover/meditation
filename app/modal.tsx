@@ -1,29 +1,174 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+const PALETTE = {
+  ink: '#0d0d1a',
+  mist: '#8b9bb4',
+  pale: '#e8edf5',
+  accent: '#7eb8d4',
+} as const;
 
 export default function ModalScreen() {
+  const [isCreateMode, setIsCreateMode] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const buttonLabel = useMemo(() => (isCreateMode ? 'Create account' : 'Log in'), [isCreateMode]);
+  const isDisabled = username.trim().length === 0 || password.trim().length === 0;
+
+  function handleSubmit() {
+    // Placeholder auth flow until backend auth is wired.
+    router.back();
+  }
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
-    </ThemedView>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={styles.keyboard}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.container}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.75 }]}>
+            <Ionicons name="close" size={24} color={PALETTE.pale} />
+          </Pressable>
+
+          <Text style={styles.title}>{isCreateMode ? 'Create account' : 'Log in'}</Text>
+          <Text style={styles.subtitle}>
+            {isCreateMode
+              ? 'Create an account to unlock more sounds.'
+              : 'Log in to access additional sound tracks.'}
+          </Text>
+
+          <TextInput
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Username"
+            placeholderTextColor={PALETTE.mist}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            placeholderTextColor={PALETTE.mist}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+
+          <Pressable
+            onPress={handleSubmit}
+            disabled={isDisabled}
+            style={({ pressed }) => [
+              styles.submitButton,
+              isDisabled && styles.submitButtonDisabled,
+              pressed && !isDisabled && { opacity: 0.85 },
+            ]}>
+            <Text style={styles.submitButtonText}>{buttonLabel}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setIsCreateMode((prev) => !prev)}
+            style={({ pressed }) => [styles.switchButton, pressed && { opacity: 0.8 }]}>
+            <Text style={styles.switchText}>
+              {isCreateMode ? 'Already have an account? Log in' : "Don't have an account? Create one"}
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: PALETTE.ink,
+  },
+  keyboard: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
   },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 24,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: PALETTE.pale,
+  },
+  subtitle: {
+    marginTop: 8,
+    marginBottom: 20,
+    fontSize: 14,
+    lineHeight: 20,
+    color: PALETTE.mist,
+  },
+  input: {
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,212,232,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    color: PALETTE.pale,
+  },
+  submitButton: {
+    marginTop: 4,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(126,184,212,0.45)',
+    backgroundColor: 'rgba(126,184,212,0.16)',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
+    color: PALETTE.pale,
+  },
+  switchButton: {
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+  },
+  switchText: {
+    fontSize: 14,
+    color: PALETTE.accent,
   },
 });
