@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Audio } from 'expo-av';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionState } from '@/constants/session-context';
 
@@ -37,6 +37,7 @@ export default function SessionScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
   const meditationAudioRef = useRef<Audio.Sound | null>(null);
+  const breathingAnim = useRef(new Animated.Value(0)).current;
 
   const stopMeditationAudio = useCallback(async () => {
     if (!meditationAudioRef.current) return;
@@ -137,11 +138,59 @@ export default function SessionScreen() {
   );
 
   const showFinish = isPaused && remaining > 0;
+  const isMeditationActive = remaining > 0 && !isPaused;
+
+  useEffect(() => {
+    if (!isMeditationActive) {
+      breathingAnim.stopAnimation();
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathingAnim, {
+          toValue: 1,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(breathingAnim, {
+          toValue: 0,
+          duration: 3200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+
+    return () => {
+      loop.stop();
+    };
+  }, [breathingAnim, isMeditationActive]);
+
+  const auraScale = breathingAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.94, 1.08],
+  });
+  const auraOpacity = breathingAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.1, 0.2],
+  });
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.timerWrapper}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.breathAura,
+              {
+                opacity: auraOpacity,
+                transform: [{ scale: auraScale }],
+              },
+            ]}
+          />
+          <View pointerEvents="none" style={styles.breathCore} />
           <Text style={styles.timerText}>{formatTime(remaining)}</Text>
         </View>
 
@@ -198,10 +247,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  breathAura: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: 'rgba(126,184,212,0.28)',
+  },
+  breathCore: {
+    position: 'absolute',
+    width: 145,
+    height: 145,
+    borderRadius: 999,
+    backgroundColor: 'rgba(126,184,212,0.08)',
+  },
   timerText: {
     fontSize: 56,
     color: PALETTE.pale,
     fontVariant: ['tabular-nums'],
+    zIndex: 1,
   },
   bottomControls: {
     position: 'absolute',
