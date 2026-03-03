@@ -80,11 +80,9 @@ export default function DurationScreen() {
           </Pressable>
         </View>
 
-      
-
         <View style={styles.pickerContainer}>
           <DateTimePicker
-            mode={isIOS ? 'countdown' : 'time'}
+            mode={isIOS ? 'countdown' : 'countdown'}
             value={pickerDate}
             display={isIOS ? 'spinner' : 'default'}
             onChange={handleChange}
