@@ -27,7 +27,11 @@ const PALETTE = {
 
 
 export default function HomeScreen() {
-  const { currentSound: sound, currentDurationMinutes: durationMinutes } = useSessionState();
+  const {
+    currentSound: sound,
+    currentEndingBell: endingBell,
+    currentDurationMinutes: durationMinutes,
+  } = useSessionState();
 
   const [fontsLoaded] = useFonts({
     Jost_200ExtraLight,
@@ -97,7 +101,7 @@ export default function HomeScreen() {
                       styles.inputValue,
                       { fontFamily: sansRegular, color: PALETTE.pale },
                     ]}>
-                    {sound}
+                    {endingBell ? `${sound}, ${endingBell}` : sound}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
