@@ -96,13 +96,20 @@ export default function HomeScreen() {
                     ]}>
                     Sound
                   </Text>
-                  <Text
-                    style={[
-                      styles.inputValue,
-                      { fontFamily: sansRegular, color: PALETTE.pale },
-                    ]}>
-                    {endingBell ? `${sound}, ${endingBell}` : sound}
-                  </Text>
+                  <View style={styles.soundSummary}>
+                    <View style={styles.soundSummaryRow}>
+                    
+                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
+                        {sound}
+                      </Text>
+                    </View>
+                    <View style={styles.soundSummaryRow}>
+                     
+                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
+                        {endingBell || 'None'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
               </Pressable>
@@ -245,6 +252,23 @@ const styles = StyleSheet.create({
   },
   inputValue: {
     fontSize: 16,
+  },
+  soundSummary: {
+    marginTop: 4,
+    gap: 2,
+  },
+  soundSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  soundSummaryLabel: {
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  soundSummaryValue: {
+    fontSize: 15,
   },
   playWrapper: {
     position: 'absolute',
