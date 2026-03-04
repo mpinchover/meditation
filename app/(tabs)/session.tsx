@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Audio } from 'expo-av';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
@@ -18,6 +19,7 @@ const PALETTE = {
   pale: '#e8edf5',
   accent: '#7eb8d4',
 } as const;
+const SESSION_KEEP_AWAKE_TAG = 'meditation-session-active';
 
 function formatTime(totalSeconds: number, showHours: boolean) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -237,6 +239,28 @@ export default function SessionScreen() {
   const hasCompleted = remaining === 0;
   const showFinish = hasCompleted || (isPaused && remaining > 0);
   const isMeditationActive = remaining > 0 && !isPaused;
+
+  const releaseKeepAwake = useCallback(() => {
+    try {
+      deactivateKeepAwake(SESSION_KEEP_AWAKE_TAG);
+    } catch {
+      // ignore if keep-awake was not active
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isMeditationActive) {
+      void activateKeepAwakeAsync(SESSION_KEEP_AWAKE_TAG).catch(() => {
+        // keep session running even if keep-awake fails
+      });
+    } else {
+      releaseKeepAwake();
+    }
+
+    return () => {
+      releaseKeepAwake();
+    };
+  }, [isMeditationActive, releaseKeepAwake]);
 
   useEffect(() => {
     if (!isMeditationActive) {
