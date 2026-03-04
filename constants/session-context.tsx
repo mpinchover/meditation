@@ -54,7 +54,7 @@ async function fetchTracksFromServer() {
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
   const [currentSound, setCurrentSound] = useState(DEFAULT_SOUND);
   const [currentEndingBell, setCurrentEndingBell] = useState(DEFAULT_ENDING_BELL);
-  const [currentDurationMinutes, setCurrentDurationMinutes] = useState(10);
+  const [currentDurationMinutes, setCurrentDurationMinutes] = useState(1);
   const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>(DEFAULT_TRACKS);
   const [availableEndingBells, setAvailableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
 
