@@ -19,16 +19,19 @@ const PALETTE = {
   accent: '#7eb8d4',
 } as const;
 
-function formatTime(totalSeconds: number) {
+function formatTime(totalSeconds: number, showHours: boolean) {
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  return [
-    h.toString().padStart(2, '0'),
-    m.toString().padStart(2, '0'),
-    sec.toString().padStart(2, '0'),
-  ].join(':');
+  if (showHours) {
+    return [
+      h.toString().padStart(2, '0'),
+      m.toString().padStart(2, '0'),
+      sec.toString().padStart(2, '0'),
+    ].join(':');
+  }
+  return [m.toString().padStart(2, '0'), sec.toString().padStart(2, '0')].join(':');
 }
 
 export default function SessionScreen() {
@@ -53,6 +56,7 @@ export default function SessionScreen() {
 
   const initialSecondsRef = useRef(currentDurationMinutes * 60);
   const [remaining, setRemaining] = useState(initialSecondsRef.current);
+  const [showHoursField, setShowHoursField] = useState(initialSecondsRef.current >= 3600);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
@@ -148,6 +152,7 @@ export default function SessionScreen() {
     useCallback(() => {
       const minutes = currentDurationMinutes;
       initialSecondsRef.current = minutes * 60;
+      setShowHoursField(initialSecondsRef.current >= 3600);
 
       if (initialSecondsRef.current <= 0) {
         setRemaining(0);
@@ -284,7 +289,7 @@ export default function SessionScreen() {
             ]}
           />
           <View pointerEvents="none" style={styles.breathCore} />
-          <Text style={styles.timerText}>{formatTime(remaining)}</Text>
+          <Text style={styles.timerText}>{formatTime(remaining, showHoursField)}</Text>
         </View>
 
         <View style={styles.bottomControls}>
