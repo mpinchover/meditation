@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 export type MeditationTrack = {
   title: string;
@@ -16,18 +16,11 @@ type SessionStateContextValue = {
   setCurrentDurationMinutes: React.Dispatch<React.SetStateAction<number>>;
   availableTracks: MeditationTrack[];
   availableEndingBells: MeditationTrack[];
+  isTracksLoading: boolean;
+  fetchTracks: () => Promise<void>;
 };
 
-const DEFAULT_SOUND = 'Soft rain';
 const DEFAULT_ENDING_BELL = '';
-const DEFAULT_TRACKS: MeditationTrack[] = [
-  {
-    title: DEFAULT_SOUND,
-    media_url: '',
-    uuid: 'local-default',
-    media_type: 'SOUNDSCAPE',
-  },
-];
 const DEFAULT_ENDING_BELLS: MeditationTrack[] = [];
 
 const SessionStateContext = createContext<SessionStateContextValue | null>(null);
@@ -52,49 +45,58 @@ async function fetchTracksFromServer() {
 }
 
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
-  const [currentSound, setCurrentSound] = useState(DEFAULT_SOUND);
+  const [currentSound, setCurrentSound] = useState('');
   const [currentEndingBell, setCurrentEndingBell] = useState(DEFAULT_ENDING_BELL);
   const [currentDurationMinutes, setCurrentDurationMinutes] = useState(1);
-  const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>(DEFAULT_TRACKS);
+  const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>([]);
   const [availableEndingBells, setAvailableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
+  const [isTracksLoading, setIsTracksLoading] = useState(false);
+  const fetchPromiseRef = useRef<Promise<void> | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchTracks = useCallback(async () => {
+    if (fetchPromiseRef.current) {
+      await fetchPromiseRef.current;
+      return;
+    }
 
-    void (async () => {
+    const request = (async () => {
+      setIsTracksLoading(true);
       try {
         const tracks = await fetchTracksFromServer();
-        if (!isMounted || tracks.length === 0) return;
-
         const soundscapes = tracks.filter((track) => track.media_type === 'SOUNDSCAPE');
         const endingBells = tracks.filter((track) => track.media_type === 'BELL');
 
-        if (soundscapes.length > 0) {
-          setAvailableTracks(soundscapes);
-        }
-        if (endingBells.length > 0) {
-          setAvailableEndingBells(endingBells);
-        }
+        setAvailableTracks(soundscapes);
+        setAvailableEndingBells(endingBells);
 
         setCurrentSound((previousSound) => {
           return soundscapes.some((track) => track.title === previousSound)
             ? previousSound
-            : (soundscapes[0]?.title ?? previousSound);
+            : (soundscapes[0]?.title ?? '');
         });
         setCurrentEndingBell((previousBell) => {
           return endingBells.some((track) => track.title === previousBell)
             ? previousBell
-            : (endingBells[0]?.title ?? previousBell);
+            : (endingBells[0]?.title ?? '');
         });
       } catch {
-        // Keep local defaults when backend is unavailable.
+        // keep current state when backend is unavailable
+      } finally {
+        setIsTracksLoading(false);
       }
     })();
 
-    return () => {
-      isMounted = false;
-    };
+    fetchPromiseRef.current = request;
+    try {
+      await request;
+    } finally {
+      fetchPromiseRef.current = null;
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchTracks();
+  }, [fetchTracks]);
 
   const value = useMemo(
     () => ({
@@ -106,6 +108,8 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       setCurrentDurationMinutes,
       availableTracks,
       availableEndingBells,
+      isTracksLoading,
+      fetchTracks,
     }),
     [
       availableEndingBells,
@@ -113,6 +117,8 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       currentDurationMinutes,
       currentEndingBell,
       currentSound,
+      fetchTracks,
+      isTracksLoading,
     ]
   );
 

@@ -2,11 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { useFonts } from 'expo-font';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { auth } from '@/constants/firebase';
+import { useSessionState } from '@/constants/session-context';
 
 const PALETTE = {
   ink: '#0d0d1a',
@@ -22,12 +23,21 @@ export default function SoundOptionsScreen() {
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
   const [user, setUser] = useState<User | null>(auth.currentUser);
+  const { availableTracks, availableEndingBells, isTracksLoading, fetchTracks } = useSessionState();
 
   useEffect(() => {
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
     });
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (availableTracks.length === 0 && availableEndingBells.length === 0) {
+        void fetchTracks();
+      }
+    }, [availableEndingBells.length, availableTracks.length, fetchTracks])
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -42,7 +52,12 @@ export default function SoundOptionsScreen() {
 
         <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Sound</Text>
 
-        <View style={styles.list}>
+        {isTracksLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={PALETTE.accent} />
+          </View>
+        ) : (
+          <View style={styles.list}>
           <Pressable
             onPress={() =>
               router.push({
@@ -70,7 +85,8 @@ export default function SoundOptionsScreen() {
               <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
             </View>
           </Pressable>
-        </View>
+          </View>
+        )}
 
         {!user ? (
           <View style={styles.loginGateAnchor}>
@@ -123,6 +139,12 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
+  },
+  loadingContainer: {
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
   },
   loginGateAnchor: {
     position: 'absolute',
