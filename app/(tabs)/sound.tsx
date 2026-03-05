@@ -40,9 +40,14 @@ export default function SoundScreen() {
   const shouldLoopPreview = !isEndingBellMode;
 
   const sounds = useMemo(() => {
-    const titles = sourceTracks.map((track) => track.title).filter(Boolean);
-    if (titles.length > 0) return titles;
-    return currentSelection ? [currentSelection] : [];
+    const trackOptions = sourceTracks
+      .filter((track) => Boolean(track.title))
+      .map((track) => ({
+        uuid: track.uuid ?? track.title,
+        name: track.title,
+      }));
+    if (trackOptions.length > 0) return trackOptions;
+    return currentSelection ? [{ uuid: currentSelection, name: currentSelection }] : [];
   }, [currentSelection, sourceTracks]);
   const [selected, setSelected] = useState<string>(currentSelection);
   const [playingName, setPlayingName] = useState<string | null>(null);
@@ -239,7 +244,7 @@ export default function SoundScreen() {
         </Text>
 
         <View style={styles.list}>
-          {sounds.map((name) => {
+          {sounds.map(({ uuid, name }) => {
             const active = selected === name;
             const isPlayingThis = playingName === name;
             const pulseScale = playingPulse.interpolate({
@@ -252,7 +257,7 @@ export default function SoundScreen() {
             });
             return (
               <Pressable
-                key={name}
+                key={uuid}
                 style={({ pressed }) => [
                   styles.row,
                   active && styles.rowActive,
