@@ -26,12 +26,14 @@ const DEFAULT_ENDING_BELLS: MeditationTrack[] = [];
 const SessionStateContext = createContext<SessionStateContextValue | null>(null);
 
 async function fetchTracksFromServer() {
-  const response = await fetch('http://127.0.0.1:5000/tracks');
+  console.log("FETCHING FROM SERVER")
+  const response = await fetch('http://127.0.0.1:5000/sounds');
   if (!response.ok) {
-    throw new Error('Failed to fetch tracks');
+    throw new Error('Failed to fetch sounds');
   }
 
   const payload = await response.json();
+  console.log("PAYLOAD", payload)
   if (!Array.isArray(payload)) return [];
 
   return payload

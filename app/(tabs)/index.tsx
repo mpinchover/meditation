@@ -62,7 +62,7 @@ export default function HomeScreen() {
 
         <View style={styles.app}>
           <View style={styles.header}>
-            <Text style={[styles.h1, { fontFamily: serif, color: PALETTE.silver }]}>Stillness</Text>
+            <Text style={[styles.h1, { fontFamily: serif, color: PALETTE.silver }]}>Callysto</Text>
           </View>
 
           <View style={styles.center}>

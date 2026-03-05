@@ -88,7 +88,7 @@ export default function SoundOptionsScreen() {
           </View>
         )}
 
-        {!user ? (
+        {/* {!user ? (
           <View style={styles.loginGateAnchor}>
             <View style={styles.loginGate}>
               <Text style={styles.loginPromptText}>Log in for more sounds</Text>
@@ -99,7 +99,7 @@ export default function SoundOptionsScreen() {
               </Pressable>
             </View>
           </View>
-        ) : null}
+        ) : null} */}
       </View>
     </SafeAreaView>
   );
