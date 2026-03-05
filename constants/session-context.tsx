@@ -63,8 +63,10 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       setIsTracksLoading(true);
       try {
         const tracks = await fetchTracksFromServer();
-        const soundscapes = tracks.filter((track) => track.media_type === 'SOUNDSCAPE');
-        const endingBells = tracks.filter((track) => track.media_type === 'BELL');
+        const byTitle = (a: MeditationTrack, b: MeditationTrack) =>
+          a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+        const soundscapes = tracks.filter((track) => track.media_type === 'SOUNDSCAPE').sort(byTitle);
+        const endingBells = tracks.filter((track) => track.media_type === 'BELL').sort(byTitle);
 
         setAvailableTracks(soundscapes);
         setAvailableEndingBells(endingBells);
