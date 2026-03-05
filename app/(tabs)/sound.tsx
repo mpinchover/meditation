@@ -3,7 +3,7 @@ import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Animated, FlatList, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionState } from '@/constants/session-context';
 
@@ -243,8 +243,12 @@ export default function SoundScreen() {
           {pickerTitle}
         </Text>
 
-        <View style={styles.list}>
-          {sounds.map(({ uuid, name }) => {
+        <FlatList
+          data={sounds}
+          keyExtractor={(item) => item.uuid}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item: { uuid, name } }) => {
             const active = selected === name;
             const isPlayingThis = playingName === name;
             const pulseScale = playingPulse.interpolate({
@@ -282,8 +286,8 @@ export default function SoundScreen() {
                 </View>
               </Pressable>
             );
-          })}
-        </View>
+          }}
+        />
 
       </View>
     </SafeAreaView>
