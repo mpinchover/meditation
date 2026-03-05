@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { prewarmMeditationSound } from '@/constants/meditation-audio';
@@ -34,6 +34,7 @@ export default function HomeScreen() {
     currentEndingBell: endingBell,
     currentDurationMinutes: durationMinutes,
     availableTracks,
+    isTracksLoading,
   } = useSessionState();
   const selectedMeditationTrack = useMemo(() => {
     return availableTracks.find((track) => track.title === sound);
@@ -55,6 +56,15 @@ export default function HomeScreen() {
     const cacheKey = selectedMeditationTrack.uuid || selectedMeditationTrack.title;
     void prewarmMeditationSound(cacheKey, selectedMeditationTrack.media_url);
   }, [selectedMeditationTrack]);
+
+  useEffect(() => {
+    if (availableTracks.length === 0) return;
+    void Promise.all(
+      availableTracks.map((track) =>
+        prewarmMeditationSound(track.uuid || track.title, track.media_url)
+      )
+    );
+  }, [availableTracks]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -108,20 +118,29 @@ export default function HomeScreen() {
                     ]}>
                     Sound
                   </Text>
-                  <View style={styles.soundSummary}>
-                    <View style={styles.soundSummaryRow}>
-                      <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
-                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
-                        {sound}
+                  {isTracksLoading ? (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator size="small" color={PALETTE.mist} />
+                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.mist }]}>
+                        Loading sound library
                       </Text>
                     </View>
-                    <View style={styles.soundSummaryRow}>
-                      <Feather name="bell" size={14} color={PALETTE.mist} />
-                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
-                        {endingBell || 'None'}
-                      </Text>
+                  ) : (
+                    <View style={styles.soundSummary}>
+                      <View style={styles.soundSummaryRow}>
+                        <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
+                        <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
+                          {sound}
+                        </Text>
+                      </View>
+                      <View style={styles.soundSummaryRow}>
+                        <Feather name="bell" size={14} color={PALETTE.mist} />
+                        <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
+                          {endingBell || 'None'}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
+                  )}
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
               </Pressable>
@@ -268,6 +287,12 @@ const styles = StyleSheet.create({
   soundSummary: {
     marginTop: 4,
     gap: 2,
+  },
+  loadingRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   soundSummaryRow: {
     flexDirection: 'row',
