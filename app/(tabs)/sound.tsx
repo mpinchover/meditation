@@ -62,10 +62,16 @@ export default function SoundScreen() {
         uuid: track.uuid ?? track.title,
         name: track.title,
       }));
+    const isBellMode = isEndingBellMode || isIntermediateBellMode;
+    if (isBellMode) {
+      return [{ uuid: 'none', name: 'None' }, ...trackOptions];
+    }
     if (trackOptions.length > 0) return trackOptions;
     return currentSelection ? [{ uuid: currentSelection, name: currentSelection }] : [];
-  }, [currentSelection, sourceTracks]);
-  const [selected, setSelected] = useState<string>(currentSelection);
+  }, [currentSelection, sourceTracks, isEndingBellMode, isIntermediateBellMode]);
+  const [selected, setSelected] = useState<string>(
+    (isEndingBellMode || isIntermediateBellMode) && !currentSelection ? 'None' : currentSelection
+  );
   const [playingName, setPlayingName] = useState<string | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
   const playingPulse = useRef(new Animated.Value(0)).current;
@@ -93,6 +99,7 @@ export default function SoundScreen() {
     async (name: string) => {
       setSelected(name);
       await stopPreview();
+      if (name === 'None') return;
 
       const cached = sharedSoundCache.get(name);
       if (cached) {
@@ -183,8 +190,12 @@ export default function SoundScreen() {
   }, [stopPreview]);
 
   useEffect(() => {
-    setSelected(currentSelection);
-  }, [currentSelection]);
+    if (isEndingBellMode || isIntermediateBellMode) {
+      setSelected(currentSelection || 'None');
+    } else {
+      setSelected(currentSelection);
+    }
+  }, [currentSelection, isEndingBellMode, isIntermediateBellMode]);
 
   useEffect(() => {
     if (!playingName) {
@@ -214,11 +225,8 @@ export default function SoundScreen() {
 
   async function handleSave() {
     await stopPreview();
-    if (!selected) {
-      router.back();
-      return;
-    }
-    setCurrentSelection(selected);
+    const valueToSave = selected === 'None' ? '' : selected;
+    setCurrentSelection(valueToSave);
     if (isIntermediateBellMode) {
       setIntermediateBellIntervalMinutes((prev) => Math.min(15, prev));
     }
