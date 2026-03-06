@@ -33,11 +33,13 @@ const DEFAULT_ENDING_BELL = '';
 const DEFAULT_ENDING_BELLS: MeditationTrack[] = [];
 const CACHE_DIR = `${FileSystem.documentDirectory ?? ''}sound-library/`;
 const CACHE_INDEX_PATH = `${CACHE_DIR}index.json`;
-
+const DEV_API_BASE_URL = 'http://127.0.0.1:5000';
+const PROD_API_BASE_URL = 'https://meditation-api-724373166676.us-central1.run.app';
+const API_BASE_URL = PROD_API_BASE_URL
 const SessionStateContext = createContext<SessionStateContextValue | null>(null);
 
 async function fetchTracksFromServer() {
-  const response = await fetch('http://127.0.0.1:5000/sounds');
+  const response = await fetch(`${API_BASE_URL}/sounds`);
   if (!response.ok) {
     throw new Error('Failed to fetch sounds');
   }
@@ -219,43 +221,51 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       setIsTracksLoading(!hasCachedTracks);
       try {
         const fetchedTracks = await fetchTracksFromServer();
-        const fetchedByUuid = new Map(fetchedTracks.map((track) => [track.uuid, track]));
+        // Show fetched sound list immediately; cache sync continues in background.
+        applyTracks(fetchedTracks);
+        setIsTracksLoading(false);
 
-        const nextCacheEntries: CachedTrack[] = [];
-        for (const entry of cachedEntries) {
-          if (!fetchedByUuid.has(entry.uuid)) {
-            await deleteFileIfExists(entry.local_uri);
-          }
-        }
+        void (async () => {
+          const fetchedByUuid = new Map(fetchedTracks.map((track) => [track.uuid, track]));
 
-        const hydratedTracks: MeditationTrack[] = [];
-        for (const track of fetchedTracks) {
-          const cached = cachedEntries.find((entry) => entry.uuid === track.uuid);
-          if (cached) {
-            const fileInfo = await FileSystem.getInfoAsync(cached.local_uri);
-            if (fileInfo.exists) {
-              nextCacheEntries.push({
-                ...cached,
-                title: track.title,
-                media_type: track.media_type,
-                remote_url: track.media_url,
-              });
-              hydratedTracks.push({ ...track, media_url: cached.local_uri });
-              continue;
+          const nextCacheEntries: CachedTrack[] = [];
+          for (const entry of cachedEntries) {
+            if (!fetchedByUuid.has(entry.uuid)) {
+              await deleteFileIfExists(entry.local_uri);
             }
           }
 
-          const downloaded = await downloadTrackToCache(track);
-          if (downloaded) {
-            nextCacheEntries.push(downloaded);
-            hydratedTracks.push({ ...track, media_url: downloaded.local_uri });
-          } else {
-            hydratedTracks.push(track);
-          }
-        }
+          const hydratedTracks: MeditationTrack[] = [];
+          for (const track of fetchedTracks) {
+            const cached = cachedEntries.find((entry) => entry.uuid === track.uuid);
+            if (cached) {
+              const fileInfo = await FileSystem.getInfoAsync(cached.local_uri);
+              if (fileInfo.exists) {
+                nextCacheEntries.push({
+                  ...cached,
+                  title: track.title,
+                  media_type: track.media_type,
+                  remote_url: track.media_url,
+                });
+                hydratedTracks.push({ ...track, media_url: cached.local_uri });
+                continue;
+              }
+            }
 
-        await persistCacheIndex(nextCacheEntries);
-        applyTracks(hydratedTracks);
+            const downloaded = await downloadTrackToCache(track);
+            if (downloaded) {
+              nextCacheEntries.push(downloaded);
+              hydratedTracks.push({ ...track, media_url: downloaded.local_uri });
+            } else {
+              hydratedTracks.push(track);
+            }
+          }
+
+          await persistCacheIndex(nextCacheEntries);
+          applyTracks(hydratedTracks);
+        })().catch(() => {
+          // keep UI responsive even if background cache sync fails
+        });
       } catch {
         // keep current state when backend is unavailable
       } finally {
