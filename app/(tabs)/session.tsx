@@ -10,6 +10,7 @@ import {
   pauseMeditationSound,
   playMeditationSound,
   prewarmMeditationSound,
+  resumeMeditationSound,
   stopMeditationSound,
 } from '@/constants/meditation-audio';
 import { useSessionState } from '@/constants/session-context';
@@ -90,6 +91,10 @@ export default function SessionScreen() {
 
   const pauseMeditationAudio = useCallback(async () => {
     await pauseMeditationSound(meditationAudioRef.current);
+  }, []);
+
+  const resumeMeditationAudio = useCallback(async () => {
+    await resumeMeditationSound(meditationAudioRef.current);
   }, []);
 
   const stopEndingBellAudio = useCallback(async () => {
@@ -311,9 +316,12 @@ export default function SessionScreen() {
     intermediateBellIntervalRef.current = setInterval(() => {
       if (manualPausedRef.current) return;
       if (remainingRef.current <= 1) return;
-      const elapsed = initialSecondsRef.current - remainingRef.current;
+      const remaining = remainingRef.current;
+      const initial = initialSecondsRef.current;
+      const elapsed = initial - remaining;
       const nextAt = nextIntermediateBellAtElapsedRef.current;
-      if (elapsed >= nextAt) {
+      const ringWhenRemainingAtOrBelow = initial - nextAt;
+      if (elapsed >= nextAt && remaining <= ringWhenRemainingAtOrBelow) {
         nextIntermediateBellAtElapsedRef.current = nextAt + intervalSeconds;
         void playIntermediateBellAudioRef.current();
       }
@@ -440,7 +448,7 @@ export default function SessionScreen() {
                   void pauseMeditationAudio();
                   return;
                 }
-                void startMeditationAudio();
+                void resumeMeditationAudio();
               }}
               style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
               <Ionicons
