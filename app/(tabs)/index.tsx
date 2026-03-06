@@ -6,7 +6,6 @@ import {
   Jost_200ExtraLight,
   Jost_400Regular,
 } from '@expo-google-fonts/jost';
-import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { router } from 'expo-router';
@@ -31,10 +30,8 @@ const PALETTE = {
 export default function HomeScreen() {
   const {
     currentSound: sound,
-    currentEndingBell: endingBell,
     currentDurationMinutes: durationMinutes,
     availableTracks,
-    isTracksLoading,
   } = useSessionState();
   const selectedMeditationTrack = useMemo(() => {
     return availableTracks.find((track) => track.title === sound);
@@ -108,7 +105,7 @@ export default function HomeScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => router.push('/(tabs)/sound-options')}
+                onPress={() => router.push('/(tabs)/soundscapes')}
                 style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
                 <View style={styles.inputTextCol}>
                   <Text
@@ -118,32 +115,23 @@ export default function HomeScreen() {
                     ]}>
                     Sound
                   </Text>
-                  {isTracksLoading ? (
-                    <View style={styles.loadingRow}>
-                      <ActivityIndicator size="small" color={PALETTE.mist} />
-                      <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.mist }]}>
-                        Loading sound library
+
+                  <View style={styles.soundSummary}>
+                    <View style={styles.soundSummaryRow}>
+                      <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
+                      <Text
+                        style={[
+                          styles.soundSummaryValue,
+                          { fontFamily: sansRegular, color: PALETTE.pale },
+                        ]}>
+                        {sound}
                       </Text>
                     </View>
-                  ) : (
-                    <View style={styles.soundSummary}>
-                      <View style={styles.soundSummaryRow}>
-                        <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
-                        <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
-                          {sound}
-                        </Text>
-                      </View>
-                      <View style={styles.soundSummaryRow}>
-                        <Feather name="bell" size={14} color={PALETTE.mist} />
-                        <Text style={[styles.soundSummaryValue, { fontFamily: sansRegular, color: PALETTE.pale }]}>
-                          {endingBell || 'None'}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
+                  </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
               </Pressable>
+
             </View>
 
             <View style={styles.playWrapper}>
@@ -157,7 +145,13 @@ export default function HomeScreen() {
                 ]}>
                 <Ionicons name="play" size={40} color={PALETTE.silver} style={{ marginLeft: 4 }} />
               </Pressable>
-
+              <Pressable
+                onPress={() => {
+                  router.push('/(tabs)/bells-options');
+                }}
+                style={({ pressed }) => [styles.menuButton, pressed && { opacity: 0.9 }]}>
+                <Ionicons name="menu" size={22} color={PALETTE.pale} />
+              </Pressable>
             </View>
           </View>
 
@@ -334,6 +328,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 12 },
+  },
+  menuButton: {
+    position: 'absolute',
+    right: 40,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
   },
   playHint: {
     fontSize: 14,

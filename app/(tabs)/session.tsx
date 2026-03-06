@@ -44,6 +44,8 @@ export default function SessionScreen() {
     availableTracks,
     currentEndingBell,
     availableEndingBells,
+    currentIntermediateBell,
+    intermediateBellIntervalMinutes,
   } = useSessionState();
   const selectedTrackUrl = useMemo(() => {
     return availableTracks.find((track) => track.title === currentSound)?.media_url;
@@ -56,6 +58,9 @@ export default function SessionScreen() {
   const selectedEndingBellUrl = useMemo(() => {
     return availableEndingBells.find((track) => track.title === currentEndingBell)?.media_url;
   }, [availableEndingBells, currentEndingBell]);
+  const selectedIntermediateBellUrl = useMemo(() => {
+    return availableEndingBells.find((track) => track.title === currentIntermediateBell)?.media_url;
+  }, [availableEndingBells, currentIntermediateBell]);
 
   const initialSecondsRef = useRef(currentDurationMinutes * 60);
   const [remaining, setRemaining] = useState(initialSecondsRef.current);
@@ -68,6 +73,11 @@ export default function SessionScreen() {
   const endingBellAudioRef = useRef<Audio.Sound | null>(null);
   const endingBellAudioUrlRef = useRef<string>('');
   const hasPlayedEndingBellRef = useRef(false);
+  const intermediateBellAudioRef = useRef<Audio.Sound | null>(null);
+  const intermediateBellAudioUrlRef = useRef<string>('');
+  const intermediateBellIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastIntermediateBellAtRef = useRef<number | null>(null);
+  const manualPausedRef = useRef(false);
   const breathingAnim = useRef(new Animated.Value(0)).current;
 
   const stopMeditationAudio = useCallback(async () => {
@@ -94,6 +104,22 @@ export default function SessionScreen() {
     }
     endingBellAudioRef.current = null;
     endingBellAudioUrlRef.current = '';
+  }, []);
+
+  const stopIntermediateBellAudio = useCallback(async () => {
+    if (!intermediateBellAudioRef.current) return;
+    try {
+      await intermediateBellAudioRef.current.stopAsync();
+    } catch {
+      // ignore stop errors while cleaning up
+    }
+    try {
+      await intermediateBellAudioRef.current.unloadAsync();
+    } catch {
+      // ignore unload errors while cleaning up
+    }
+    intermediateBellAudioRef.current = null;
+    intermediateBellAudioUrlRef.current = '';
   }, []);
 
   const startMeditationAudio = useCallback(async () => {
@@ -139,6 +165,34 @@ export default function SessionScreen() {
     }
   }, [selectedEndingBellUrl, stopEndingBellAudio]);
 
+  const playIntermediateBellAudio = useCallback(async () => {
+    if (!selectedIntermediateBellUrl) return;
+    if (
+      intermediateBellAudioRef.current &&
+      intermediateBellAudioUrlRef.current === selectedIntermediateBellUrl
+    ) {
+      try {
+        await intermediateBellAudioRef.current.playFromPositionAsync(0);
+        return;
+      } catch {
+        await stopIntermediateBellAudio();
+      }
+    }
+
+    await stopIntermediateBellAudio();
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: selectedIntermediateBellUrl },
+        { shouldPlay: true, isLooping: false }
+      );
+      intermediateBellAudioRef.current = sound;
+      intermediateBellAudioUrlRef.current = selectedIntermediateBellUrl;
+    } catch {
+      // keep session running even if intermediate bell fails
+    }
+  }, [selectedIntermediateBellUrl, stopIntermediateBellAudio]);
+
   useFocusEffect(
     useCallback(() => {
       const minutes = currentDurationMinutes;
@@ -162,6 +216,7 @@ export default function SessionScreen() {
       setRemaining(initialSecondsRef.current);
       setIsPaused(false);
       pausedRef.current = false;
+      manualPausedRef.current = false;
       hasPlayedEndingBellRef.current = false;
       void startMeditationAudio();
 
@@ -185,8 +240,19 @@ export default function SessionScreen() {
         }
         void stopMeditationAudio();
         void stopEndingBellAudio();
+        if (intermediateBellIntervalRef.current) {
+          clearInterval(intermediateBellIntervalRef.current);
+          intermediateBellIntervalRef.current = null;
+        }
+        void stopIntermediateBellAudio();
       };
-    }, [currentDurationMinutes, startMeditationAudio, stopEndingBellAudio, stopMeditationAudio])
+    }, [
+      currentDurationMinutes,
+      startMeditationAudio,
+      stopEndingBellAudio,
+      stopMeditationAudio,
+      stopIntermediateBellAudio,
+    ])
   );
 
   useEffect(() => {
@@ -207,6 +273,50 @@ export default function SessionScreen() {
     if (!endingBellAudioRef.current) return;
     void stopEndingBellAudio();
   }, [selectedEndingBellUrl, stopEndingBellAudio]);
+
+  useEffect(() => {
+    if (!selectedIntermediateBellUrl) return;
+    if (intermediateBellAudioUrlRef.current === selectedIntermediateBellUrl) return;
+    if (!intermediateBellAudioRef.current) return;
+    void stopIntermediateBellAudio();
+  }, [selectedIntermediateBellUrl, stopIntermediateBellAudio]);
+
+  useEffect(() => {
+    if (intermediateBellIntervalRef.current) {
+      clearInterval(intermediateBellIntervalRef.current);
+      intermediateBellIntervalRef.current = null;
+    }
+
+    if (!selectedIntermediateBellUrl || !currentIntermediateBell) {
+      return;
+    }
+
+    const intervalMinutes = Math.max(1, intermediateBellIntervalMinutes || 1);
+    lastIntermediateBellAtRef.current = Date.now();
+
+    intermediateBellIntervalRef.current = setInterval(() => {
+      if (manualPausedRef.current) return;
+      const lastAt = lastIntermediateBellAtRef.current ?? Date.now();
+      const now = Date.now();
+      const intervalMs = intervalMinutes * 60 * 1000;
+      if (now - lastAt >= intervalMs) {
+        lastIntermediateBellAtRef.current = now;
+        void playIntermediateBellAudio();
+      }
+    }, 1000);
+
+    return () => {
+      if (intermediateBellIntervalRef.current) {
+        clearInterval(intermediateBellIntervalRef.current);
+        intermediateBellIntervalRef.current = null;
+      }
+    };
+  }, [
+    currentIntermediateBell,
+    intermediateBellIntervalMinutes,
+    playIntermediateBellAudio,
+    selectedIntermediateBellUrl,
+  ]);
 
   useEffect(() => {
     if (remaining !== 0) return;
@@ -312,6 +422,7 @@ export default function SessionScreen() {
                 const next = !isPaused;
                 setIsPaused(next);
                 pausedRef.current = next;
+                manualPausedRef.current = next;
                 if (next) {
                   void pauseMeditationAudio();
                   return;
@@ -330,7 +441,11 @@ export default function SessionScreen() {
           {showFinish ? (
             <Pressable
               onPress={() => {
-                void Promise.all([stopMeditationAudio(), stopEndingBellAudio()]).finally(() => {
+                void Promise.all([
+                  stopMeditationAudio(),
+                  stopEndingBellAudio(),
+                  stopIntermediateBellAudio(),
+                ]).finally(() => {
                   router.back();
                 });
               }}

@@ -14,6 +14,10 @@ type SessionStateContextValue = {
   setCurrentSound: React.Dispatch<React.SetStateAction<string>>;
   currentEndingBell: string;
   setCurrentEndingBell: React.Dispatch<React.SetStateAction<string>>;
+  currentIntermediateBell: string;
+  setCurrentIntermediateBell: React.Dispatch<React.SetStateAction<string>>;
+  intermediateBellIntervalMinutes: number;
+  setIntermediateBellIntervalMinutes: React.Dispatch<React.SetStateAction<number>>;
   currentDurationMinutes: number;
   setCurrentDurationMinutes: React.Dispatch<React.SetStateAction<number>>;
   availableTracks: MeditationTrack[];
@@ -39,6 +43,8 @@ function splitTracks(tracks: MeditationTrack[]) {
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
   const [currentSound, setCurrentSound] = useState('');
   const [currentEndingBell, setCurrentEndingBell] = useState(DEFAULT_ENDING_BELL);
+  const [currentIntermediateBell, setCurrentIntermediateBell] = useState(DEFAULT_ENDING_BELL);
+  const [intermediateBellIntervalMinutes, setIntermediateBellIntervalMinutes] = useState(1);
   const [currentDurationMinutes, setCurrentDurationMinutes] = useState(1);
   const [availableTracks, setAvailableTracks] = useState<MeditationTrack[]>([]);
   const [availableEndingBells, setAvailableEndingBells] = useState<MeditationTrack[]>(DEFAULT_ENDING_BELLS);
@@ -87,6 +93,10 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       setCurrentSound,
       currentEndingBell,
       setCurrentEndingBell,
+      currentIntermediateBell,
+      setCurrentIntermediateBell,
+      intermediateBellIntervalMinutes,
+      setIntermediateBellIntervalMinutes,
       currentDurationMinutes,
       setCurrentDurationMinutes,
       availableTracks,
@@ -100,6 +110,8 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
       currentDurationMinutes,
       currentEndingBell,
       currentSound,
+      currentIntermediateBell,
+      intermediateBellIntervalMinutes,
       fetchTracks,
       isTracksLoading,
     ]

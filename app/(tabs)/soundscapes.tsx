@@ -1,11 +1,9 @@
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
 import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-// @ts-ignore Slider types are provided by the runtime dependency
-import Slider from '@react-native-community/slider';
 
 import { useSessionState } from '@/constants/session-context';
 
@@ -19,72 +17,42 @@ const PALETTE = {
 
 const sharedSoundCache = new Map<string, Audio.Sound>();
 
-export default function SoundScreen() {
+export default function SoundscapesScreen() {
   const [fontsLoaded] = useFonts({
     CormorantGaramond_300Light,
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
 
-  const { mode, title } = useLocalSearchParams<{ mode?: string; title?: string }>();
-  const isEndingBellMode = mode === 'ending-bell';
-  const isIntermediateBellMode = mode === 'intermediate-bell';
-
-  const {
-    currentSound,
-    setCurrentSound,
-    availableTracks,
-    currentEndingBell,
-    setCurrentEndingBell,
-    availableEndingBells,
-    currentIntermediateBell,
-    setCurrentIntermediateBell,
-    intermediateBellIntervalMinutes,
-    setIntermediateBellIntervalMinutes,
-  } = useSessionState();
-  const currentSelection = isEndingBellMode
-    ? currentEndingBell
-    : isIntermediateBellMode
-      ? currentIntermediateBell
-      : currentSound;
-  const setCurrentSelection = isEndingBellMode
-    ? setCurrentEndingBell
-    : isIntermediateBellMode
-      ? setCurrentIntermediateBell
-      : setCurrentSound;
-  const sourceTracks =
-    isEndingBellMode || isIntermediateBellMode ? availableEndingBells : availableTracks;
-  const shouldLoopPreview = !(isEndingBellMode || isIntermediateBellMode);
+  const { currentSound, setCurrentSound, availableTracks } = useSessionState();
 
   const sounds = useMemo(() => {
-    const trackOptions = sourceTracks
+    const trackOptions = availableTracks
       .filter((track) => Boolean(track.title))
       .map((track) => ({
         uuid: track.uuid ?? track.title,
         name: track.title,
       }));
     if (trackOptions.length > 0) return trackOptions;
-    return currentSelection ? [{ uuid: currentSelection, name: currentSelection }] : [];
-  }, [currentSelection, sourceTracks]);
-  const [selected, setSelected] = useState<string>(currentSelection);
+    return currentSound ? [{ uuid: currentSound, name: currentSound }] : [];
+  }, [currentSound, availableTracks]);
+
+  const [selected, setSelected] = useState<string>(currentSound);
   const [playingName, setPlayingName] = useState<string | null>(null);
   const previewRef = useRef<Audio.Sound | null>(null);
   const playingPulse = useRef(new Animated.Value(0)).current;
 
   const stopPreview = useCallback(async () => {
     if (!previewRef.current) return;
-
     try {
       await previewRef.current.stopAsync();
     } catch {
-      // ignore stop errors while cleaning up
+      // ignore
     }
-
     try {
       await previewRef.current.setPositionAsync(0);
     } catch {
-      // ignore reset errors while cleaning up
+      // ignore
     }
-
     previewRef.current = null;
     setPlayingName(null);
   }, []);
@@ -98,71 +66,65 @@ export default function SoundScreen() {
       if (cached) {
         previewRef.current = cached;
         try {
-          await cached.setIsLoopingAsync(shouldLoopPreview);
+          await cached.setIsLoopingAsync(true);
           await cached.playFromPositionAsync(0);
           setPlayingName(name);
         } catch {
-          // ignore playback errors and keep UI responsive
           setPlayingName(null);
         }
         return;
       }
 
-      const mediaUrl = sourceTracks.find((track) => track.title === name)?.media_url;
+      const mediaUrl = availableTracks.find((track) => track.title === name)?.media_url;
       if (!mediaUrl) return;
 
       try {
         const { sound } = await Audio.Sound.createAsync(
           { uri: mediaUrl },
-          { shouldPlay: false, isLooping: shouldLoopPreview }
+          { shouldPlay: false, isLooping: true }
         );
         sharedSoundCache.set(name, sound);
         previewRef.current = sound;
         await sound.playFromPositionAsync(0);
         setPlayingName(name);
       } catch {
-        // keep UI responsive even if preview fails
         setPlayingName(null);
       }
     },
-    [shouldLoopPreview, sourceTracks, stopPreview]
+    [availableTracks, stopPreview]
   );
 
   useEffect(() => {
     let isCancelled = false;
-
     const preload = async () => {
       await Promise.all(
-        sourceTracks.map(async (track) => {
-          if (isCancelled) return;
-          if (!track.media_url || sharedSoundCache.has(track.title)) return;
-
+        availableTracks.map(async (track) => {
+          if (isCancelled || !track.media_url || sharedSoundCache.has(track.title)) return;
           try {
             const { sound } = await Audio.Sound.createAsync(
               { uri: track.media_url },
-              { shouldPlay: false, isLooping: shouldLoopPreview }
+              { shouldPlay: false, isLooping: true }
             );
             if (isCancelled) {
               try {
                 await sound.unloadAsync();
               } catch {
-                // ignore unload errors during cancellation
+                // ignore
               }
               return;
             }
             sharedSoundCache.set(track.title, sound);
           } catch {
-            // keep preloading best-effort
+            // ignore
           }
         })
       );
     };
-
     void preload();
     return () => {
       isCancelled = true;
     };
-  }, [shouldLoopPreview, sourceTracks]);
+  }, [availableTracks]);
 
   useEffect(() => {
     void Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -177,39 +139,22 @@ export default function SoundScreen() {
   );
 
   useEffect(() => {
-    return () => {
-      void stopPreview();
-    };
-  }, [stopPreview]);
-
-  useEffect(() => {
-    setSelected(currentSelection);
-  }, [currentSelection]);
+    setSelected(currentSound);
+  }, [currentSound]);
 
   useEffect(() => {
     if (!playingName) {
       playingPulse.stopAnimation();
       return;
     }
-
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(playingPulse, {
-          toValue: 1,
-          duration: 650,
-          useNativeDriver: true,
-        }),
-        Animated.timing(playingPulse, {
-          toValue: 0,
-          duration: 650,
-          useNativeDriver: true,
-        }),
+        Animated.timing(playingPulse, { toValue: 1, duration: 650, useNativeDriver: true }),
+        Animated.timing(playingPulse, { toValue: 0, duration: 650, useNativeDriver: true }),
       ])
     );
     loop.start();
-    return () => {
-      loop.stop();
-    };
+    return () => loop.stop();
   }, [playingName, playingPulse]);
 
   async function handleSave() {
@@ -218,29 +163,8 @@ export default function SoundScreen() {
       router.back();
       return;
     }
-    setCurrentSelection(selected);
+    setCurrentSound(selected);
     router.back();
-  }
-
-  const pickerTitle =
-    typeof title === 'string' && title.length > 0
-      ? title
-      : isEndingBellMode
-        ? 'Ending bell'
-        : 'Meditation';
-
-  function handleBack() {
-    void stopPreview().finally(() => {
-      if (mode === 'ending-bell' || mode === 'intermediate-bell') {
-        router.replace('/(tabs)/bells-options');
-        return;
-      }
-      if (mode === 'meditation') {
-        router.back();
-        return;
-      }
-      router.back();
-    });
   }
 
   return (
@@ -248,7 +172,7 @@ export default function SoundScreen() {
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={handleBack}
+            onPress={() => void stopPreview().finally(() => router.back())}
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
@@ -259,9 +183,7 @@ export default function SoundScreen() {
           </Pressable>
         </View>
 
-        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>
-          {pickerTitle}
-        </Text>
+        <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Sound</Text>
 
         <FlatList
           data={sounds}
@@ -287,19 +209,14 @@ export default function SoundScreen() {
                   active && styles.rowActive,
                   pressed && { opacity: 0.9 },
                 ]}
-                onPress={() => {
-                  void playPreview(name);
-                }}>
+                onPress={() => void playPreview(name)}>
                 <View style={styles.rowInner}>
                   <Text style={[styles.rowText, active && styles.rowTextActive]}>{name}</Text>
                   {isPlayingThis ? (
                     <Animated.View
                       style={[
                         styles.playingDot,
-                        {
-                          transform: [{ scale: pulseScale }],
-                          opacity: pulseOpacity,
-                        },
+                        { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
                       ]}
                     />
                   ) : null}
@@ -308,28 +225,6 @@ export default function SoundScreen() {
             );
           }}
         />
-
-        {isIntermediateBellMode ? (
-          <View style={styles.intervalContainer}>
-            <View style={styles.intervalHeaderRow}>
-              <Text style={styles.intervalLabel}>Interval</Text>
-              <Text style={styles.intervalValue}>{intermediateBellIntervalMinutes} min</Text>
-            </View>
-            <Slider
-              minimumValue={1}
-              maximumValue={100}
-              step={1}
-              value={intermediateBellIntervalMinutes}
-              onValueChange={(value: number) => {
-                setIntermediateBellIntervalMinutes(Math.round(value));
-              }}
-              minimumTrackTintColor={PALETTE.accent}
-              maximumTrackTintColor="rgba(200,212,232,0.25)"
-              thumbTintColor={PALETTE.accent}
-            />
-          </View>
-        ) : null}
-
       </View>
     </SafeAreaView>
   );
@@ -344,7 +239,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'android' ? 32 : 12,
-    paddingBottom: 32,
   },
   headerRow: {
     flexDirection: 'row',
@@ -370,26 +264,6 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
-  },
-  intervalContainer: {
-    marginTop: 16,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(200,212,232,0.12)',
-  },
-  intervalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  intervalLabel: {
-    fontSize: 13,
-    color: PALETTE.mist,
-  },
-  intervalValue: {
-    fontSize: 14,
-    color: PALETTE.pale,
   },
   row: {
     paddingVertical: 14,
@@ -431,4 +305,3 @@ const styles = StyleSheet.create({
     color: PALETTE.accent,
   },
 });
-

@@ -77,7 +77,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="soundscapes"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="sound-options"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="bells-options"
         options={{
           href: null,
         }}
