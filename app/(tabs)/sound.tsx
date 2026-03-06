@@ -27,7 +27,7 @@ export default function SoundScreen() {
 
   const { mode, title } = useLocalSearchParams<{ mode?: string; title?: string }>();
   const isEndingBellMode = mode === 'ending-bell';
-  const isIntermediateBellMode = mode === 'intermediate-bell';
+  const isIntermediateBellMode = mode === 'interval-bell';
 
   const {
     currentSound,
@@ -219,6 +219,9 @@ export default function SoundScreen() {
       return;
     }
     setCurrentSelection(selected);
+    if (isIntermediateBellMode) {
+      setIntermediateBellIntervalMinutes((prev) => Math.min(15, prev));
+    }
     router.back();
   }
 
@@ -231,7 +234,7 @@ export default function SoundScreen() {
 
   function handleBack() {
     void stopPreview().finally(() => {
-      if (mode === 'ending-bell' || mode === 'intermediate-bell') {
+      if (mode === 'ending-bell' || mode === 'interval-bell') {
         router.replace('/(tabs)/bells-options');
         return;
       }
@@ -313,13 +316,15 @@ export default function SoundScreen() {
           <View style={styles.intervalContainer}>
             <View style={styles.intervalHeaderRow}>
               <Text style={styles.intervalLabel}>Interval</Text>
-              <Text style={styles.intervalValue}>{intermediateBellIntervalMinutes} min</Text>
+              <Text style={styles.intervalValue}>
+                {Math.min(intermediateBellIntervalMinutes, 15)} min
+              </Text>
             </View>
             <Slider
               minimumValue={1}
-              maximumValue={100}
+              maximumValue={15}
               step={1}
-              value={intermediateBellIntervalMinutes}
+              value={Math.min(intermediateBellIntervalMinutes, 15)}
               onValueChange={(value: number) => {
                 setIntermediateBellIntervalMinutes(Math.round(value));
               }}
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'android' ? 32 : 12,
-    paddingBottom: 32,
+    paddingBottom: 56,
   },
   headerRow: {
     flexDirection: 'row',
@@ -372,8 +377,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   intervalContainer: {
-    marginTop: 16,
-    paddingTop: 8,
+    marginTop: 24,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(200,212,232,0.12)',
   },

@@ -1,5 +1,7 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { CormorantGaramond_300Light } from '@expo-google-fonts/cormorant-garamond';
+import { Jost_200ExtraLight, Jost_400Regular } from '@expo-google-fonts/jost';
+import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFonts } from 'expo-font';
 import { router, useFocusEffect } from 'expo-router';
 import React from 'react';
@@ -18,9 +20,20 @@ const PALETTE = {
 export default function BellsOptionsScreen() {
   const [fontsLoaded] = useFonts({
     CormorantGaramond_300Light,
+    Jost_200ExtraLight,
+    Jost_400Regular,
   });
   const serif = fontsLoaded ? 'CormorantGaramond_300Light' : Platform.select({ default: 'serif' });
-  const { availableEndingBells, isTracksLoading, fetchTracks } = useSessionState();
+  const sansThin = fontsLoaded ? 'Jost_200ExtraLight' : Platform.select({ default: 'System' });
+  const sansRegular = fontsLoaded ? 'Jost_400Regular' : Platform.select({ default: 'System' });
+  const {
+    currentEndingBell,
+    currentIntermediateBell,
+    intermediateBellIntervalMinutes,
+    availableEndingBells,
+    isTracksLoading,
+    fetchTracks,
+  } = useSessionState();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -48,7 +61,7 @@ export default function BellsOptionsScreen() {
             <ActivityIndicator size="small" color={PALETTE.accent} />
           </View>
         ) : (
-          <View style={styles.list}>
+          <View style={styles.inputs}>
             <Pressable
               onPress={() =>
                 router.push({
@@ -56,25 +69,57 @@ export default function BellsOptionsScreen() {
                   params: { mode: 'ending-bell', title: 'Ending bell' },
                 })
               }
-              style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
-              <View style={styles.rowContent}>
-                <Text style={styles.rowText}>Ending bell</Text>
-                <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+              style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
+              <View style={styles.inputTextCol}>
+                <Text
+                  style={[styles.inputLabel, { fontFamily: sansThin, color: PALETTE.mist }]}>
+                  Ending bell
+                </Text>
+                <View style={styles.soundSummary}>
+                  <View style={styles.soundSummaryRow}>
+                    <Feather name="bell" size={14} color={PALETTE.mist} />
+                    <Text
+                      style={[
+                        styles.soundSummaryValue,
+                        { fontFamily: sansRegular, color: PALETTE.pale },
+                      ]}>
+                      {currentEndingBell || 'None'}
+                    </Text>
+                  </View>
+                </View>
               </View>
+              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
             </Pressable>
 
             <Pressable
               onPress={() =>
                 router.push({
                   pathname: '/(tabs)/sound',
-                  params: { mode: 'intermediate-bell', title: 'Intermediate bells' },
+                  params: { mode: 'interval-bell', title: 'Interval bells' },
                 })
               }
-              style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
-              <View style={styles.rowContent}>
-                <Text style={styles.rowText}>Intermediate bells</Text>
-                <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+              style={({ pressed }) => [styles.inputRow, pressed && { opacity: 0.9 }]}>
+              <View style={styles.inputTextCol}>
+                <Text
+                  style={[styles.inputLabel, { fontFamily: sansThin, color: PALETTE.mist }]}>
+                  Interval bell
+                </Text>
+                <View style={styles.soundSummary}>
+                  <View style={styles.soundSummaryRow}>
+                    <Feather name="bell" size={14} color={PALETTE.mist} />
+                    <Text
+                      style={[
+                        styles.soundSummaryValue,
+                        { fontFamily: sansRegular, color: PALETTE.pale },
+                      ]}>
+                      {currentIntermediateBell
+                        ? `${currentIntermediateBell}, every ${intermediateBellIntervalMinutes}m`
+                        : 'None'}
+                    </Text>
+                  </View>
+                </View>
               </View>
+              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
             </Pressable>
           </View>
         )}
@@ -115,8 +160,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginBottom: 16,
   },
-  list: {
-    gap: 10,
+  inputs: {
+    gap: 12,
   },
   loadingContainer: {
     marginTop: 8,
@@ -124,21 +169,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 120,
   },
-  row: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(200,212,232,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  rowContent: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,212,232,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  rowText: {
+  inputTextCol: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  inputLabel: {
+    fontSize: 11,
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
+  },
+  soundSummary: {
+    marginTop: 4,
+    gap: 2,
+  },
+  soundSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  soundSummaryValue: {
     fontSize: 15,
-    color: PALETTE.pale,
   },
 });

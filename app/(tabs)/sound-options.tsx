@@ -90,12 +90,12 @@ export default function SoundOptionsScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/(tabs)/sound',
-                  params: { mode: 'intermediate-bell', title: 'Intermediate bells' },
+                  params: { mode: 'interval-bell', title: 'Interval bells' },
                 })
               }
               style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
               <View style={styles.rowContent}>
-                <Text style={styles.rowText}>Intermediate bells</Text>
+                <Text style={styles.rowText}>Interval bells</Text>
                 <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
               </View>
             </Pressable>

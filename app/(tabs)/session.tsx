@@ -291,7 +291,7 @@ export default function SessionScreen() {
       return;
     }
 
-    const intervalMinutes = Math.max(1, intermediateBellIntervalMinutes || 1);
+    const intervalMinutes = Math.min(15, Math.max(1, intermediateBellIntervalMinutes || 1));
     lastIntermediateBellAtRef.current = Date.now();
 
     intermediateBellIntervalRef.current = setInterval(() => {
