@@ -52,6 +52,11 @@ export default function BellsOptionsScreen() {
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.7 }]}>
+            <Text style={styles.saveText}>Save</Text>
+          </Pressable>
         </View>
 
         <Text style={[styles.screenTitle, { fontFamily: serif, color: PALETTE.silver }]}>Bells</Text>
@@ -151,6 +156,14 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 14,
     color: PALETTE.mist,
+  },
+  saveBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  saveText: {
+    fontSize: 14,
+    color: PALETTE.accent,
   },
   screenTitle: {
     fontSize: 32,

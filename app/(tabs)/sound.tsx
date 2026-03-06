@@ -230,7 +230,11 @@ export default function SoundScreen() {
     if (isIntermediateBellMode) {
       setIntermediateBellIntervalMinutes((prev) => Math.min(15, prev));
     }
-    router.back();
+    if (isEndingBellMode || isIntermediateBellMode) {
+      router.replace('/(tabs)/bells-options');
+    } else {
+      router.back();
+    }
   }
 
   const pickerTitle =
@@ -242,7 +246,7 @@ export default function SoundScreen() {
 
   function handleBack() {
     void stopPreview().finally(() => {
-      if (mode === 'ending-bell' || mode === 'interval-bell') {
+      if (mode === 'ending-bell' || mode === 'intermediate-bell') {
         router.replace('/(tabs)/bells-options');
         return;
       }
