@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Platform, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import {
+  MeditationLooper,
   pauseMeditationSound,
   playMeditationSound,
   prewarmMeditationSound,
@@ -62,7 +63,7 @@ export default function SessionScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
-  const meditationAudioRef = useRef<Audio.Sound | null>(null);
+  const meditationAudioRef = useRef<MeditationLooper | null>(null);
   const meditationAudioKeyRef = useRef<string>('');
   const endingBellAudioRef = useRef<Audio.Sound | null>(null);
   const endingBellAudioUrlRef = useRef<string>('');
@@ -98,19 +99,7 @@ export default function SessionScreen() {
   const startMeditationAudio = useCallback(async () => {
     if (!selectedTrackUrl || !selectedTrackCacheKey) return;
 
-    if (
-      meditationAudioRef.current &&
-      meditationAudioKeyRef.current === selectedTrackCacheKey
-    ) {
-      try {
-        await meditationAudioRef.current.playAsync();
-        return;
-      } catch {
-        await stopMeditationAudio();
-      }
-    }
-
-    if (meditationAudioRef.current) {
+    if (meditationAudioRef.current && meditationAudioKeyRef.current !== selectedTrackCacheKey) {
       await stopMeditationAudio();
     }
 
