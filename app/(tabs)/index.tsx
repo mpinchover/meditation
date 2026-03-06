@@ -118,7 +118,7 @@ export default function HomeScreen() {
 
                   <View style={styles.soundSummary}>
                     <View style={styles.soundSummaryRow}>
-                      <Ionicons name="musical-notes" size={14} color={PALETTE.mist} />
+                    
                       <Text
                         style={[
                           styles.soundSummaryValue,

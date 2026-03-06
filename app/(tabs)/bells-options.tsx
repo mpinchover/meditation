@@ -82,7 +82,7 @@ export default function BellsOptionsScreen() {
                 </Text>
                 <View style={styles.soundSummary}>
                   <View style={styles.soundSummaryRow}>
-                    <Feather name="bell" size={14} color={PALETTE.mist} />
+                   
                     <Text
                       style={[
                         styles.soundSummaryValue,
@@ -93,7 +93,7 @@ export default function BellsOptionsScreen() {
                   </View>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+
             </Pressable>
 
             <Pressable
@@ -111,7 +111,7 @@ export default function BellsOptionsScreen() {
                 </Text>
                 <View style={styles.soundSummary}>
                   <View style={styles.soundSummaryRow}>
-                    <Feather name="bell" size={14} color={PALETTE.mist} />
+
                     <Text
                       style={[
                         styles.soundSummaryValue,
@@ -124,7 +124,7 @@ export default function BellsOptionsScreen() {
                   </View>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={PALETTE.mist} />
+
             </Pressable>
           </View>
         )}
